@@ -1,6 +1,6 @@
-{% if status == "success" %}<span class="badge text-bg-success">success</span>
-{% elif status == "failed" %}<span class="badge text-bg-danger" {% if error %}title="{{ error }}"{% endif %}>failed</span>
-{% elif status == "running" %}<span class="badge text-bg-primary"><span class="spinner-border spinner-border-sm"></span> running</span>
-{% elif status == "queued" %}<span class="badge text-bg-info">queued</span>
-{% elif status == "skipped" %}<span class="badge text-bg-secondary" {% if error %}title="{{ error }}"{% endif %}>skipped</span>
-{% else %}<span class="text-body-secondary">never run</span>{% endif %}
+{% if status == "success" %}<span class="badge-soft badge-soft-success"><span class="status-dot"></span> success</span>
+{% elif status == "failed" %}<span class="badge-soft badge-soft-danger" {% if error %}title="{{ error }}"{% endif %}><i class="bi bi-x-circle-fill"></i> failed</span>
+{% elif status == "running" %}<span class="badge-soft badge-soft-info"><span class="spinner-border"></span> running</span>
+{% elif status == "queued" %}<span class="badge-soft badge-soft-accent"><i class="bi bi-hourglass-split"></i> queued</span>
+{% elif status == "skipped" %}<span class="badge-soft badge-soft-secondary" {% if error %}title="{{ error }}"{% endif %}>skipped</span>
+{% else %}<span class="text-body-secondary small">never run</span>{% endif %}

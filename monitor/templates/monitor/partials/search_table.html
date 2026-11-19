@@ -1,36 +1,39 @@
 {% load humanize %}
 {% if searches %}
+<div class="table-card">
 <div class="table-responsive">
-<table class="table table-hover align-middle">
+<table class="table table-striped table-hover align-middle">
   <thead>
     <tr>
       <th>Name</th><th>Query</th><th>Schedule</th><th>Last search</th><th>Next search</th>
-      <th>Last status</th><th>Results</th><th class="text-end">Actions</th>
+      <th>Status</th><th>Results</th><th class="text-end">Actions</th>
     </tr>
   </thead>
   <tbody>
   {% for s in searches %}
-    <tr class="{% if not s.enabled %}text-body-secondary{% endif %}">
-      <td>
-        <a href="{% url 'search-detail' s.pk %}" class="fw-semibold text-decoration-none">{{ s.name }}</a>
-        {% if s.use_proxy %}<i class="bi bi-shield-lock text-info" title="Runs via proxy"></i>{% endif %}
-        {% if s.notify_email %}<i class="bi bi-envelope" title="Email alerts on"></i>{% endif %}
-        {% if s.notify_slack %}<i class="bi bi-slack" title="Slack alerts on"></i>{% endif %}
+    <tr class="{% if not s.enabled %}row-paused{% endif %}">
+      <td class="text-nowrap">
+        <a href="{% url 'search-detail' s.pk %}" class="search-name">{{ s.name }}</a>
+        <span class="ms-1 text-body-secondary small">
+          {% if s.use_proxy %}<i class="bi bi-shield-lock" title="Runs via proxy"></i>{% endif %}
+          {% if s.notify_email %}<i class="bi bi-envelope" title="Email alerts on"></i>{% endif %}
+          {% if s.notify_slack %}<i class="bi bi-slack" title="Slack alerts on"></i>{% endif %}
+        </span>
       </td>
-      <td><code>{{ s.query|truncatechars:60 }}</code></td>
-      <td class="small">{% if s.enabled %}{{ s.interval_display }}{% else %}<span class="badge text-bg-secondary">paused</span>{% endif %}</td>
-      <td class="small">
-        {% if s.last_run_at %}<span title="{{ s.last_run_at }}">{{ s.last_run_at|naturaltime }}</span>{% else %}—{% endif %}
+      <td><span class="query-text">{{ s.query|truncatechars:60 }}</span></td>
+      <td class="small text-nowrap">{% if s.enabled %}{{ s.interval_display }}{% else %}<span class="badge-soft badge-soft-secondary"><i class="bi bi-pause-fill"></i> paused</span>{% endif %}</td>
+      <td class="small text-nowrap">
+        {% if s.last_run_at %}<span title="{{ s.last_run_at }}">{{ s.last_run_at|naturaltime }}</span>{% else %}<span class="text-body-secondary">—</span>{% endif %}
       </td>
-      <td class="small">
+      <td class="small text-nowrap">
         {% if s.enabled and s.next_run_at %}<span title="{{ s.next_run_at }}">{{ s.next_run_at|naturaltime }}</span>
-        {% else %}—{% endif %}
+        {% else %}<span class="text-body-secondary">—</span>{% endif %}
       </td>
       <td>{% include "monitor/partials/status_badge.html" with status=s.last_status error=s.last_error %}</td>
-      <td>
-        {% if s.new_count %}<a href="{% url 'search-detail' s.pk %}?new=1" class="badge rounded-pill text-bg-warning text-decoration-none"><i class="bi bi-bell-fill"></i> {{ s.new_count }} new</a>{% endif %}
-        {% if s.tagged_count %}<a href="{% url 'search-detail' s.pk %}?view=tagged" class="badge rounded-pill text-bg-primary text-decoration-none" title="Tagged results"><i class="bi bi-tags-fill"></i> {{ s.tagged_count }}</a>{% endif %}
-        <span class="small text-body-secondary">{{ s.total_count }} total</span>
+      <td class="text-nowrap">
+        {% if s.new_count %}<a href="{% url 'search-detail' s.pk %}?view=new" class="badge-soft badge-soft-warning"><i class="bi bi-bell-fill"></i> {{ s.new_count }} new</a>{% endif %}
+        {% if s.tagged_count %}<a href="{% url 'search-detail' s.pk %}?view=tagged" class="badge-soft badge-soft-accent" title="Tagged results"><i class="bi bi-tags-fill"></i> {{ s.tagged_count }}</a>{% endif %}
+        <span class="small text-body-secondary ms-1">{{ s.total_count }} total</span>
       </td>
       <td class="text-end text-nowrap">
         <button class="btn btn-sm btn-outline-primary" title="Run now"
@@ -46,9 +49,12 @@
   </tbody>
 </table>
 </div>
+</div>
 {% else %}
-<div class="text-center py-5 border rounded">
-  <p class="mb-3">No saved searches yet.</p>
-  <a class="btn btn-primary" href="{% url 'search-create' %}">Create your first search</a>
+<div class="empty-state text-center py-5 px-3">
+  <i class="bi bi-binoculars"></i>
+  <h2 class="h5 mt-2">No saved searches yet</h2>
+  <p class="text-body-secondary mb-3">Create a search and the app will re-run it on a schedule and flag anything new.</p>
+  <a class="btn btn-primary" href="{% url 'search-create' %}"><i class="bi bi-plus-lg"></i> Create your first search</a>
 </div>
 {% endif %}

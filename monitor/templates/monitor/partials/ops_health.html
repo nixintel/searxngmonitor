@@ -7,13 +7,13 @@
   <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
     {% for c in checks %}
       <div class="col">
-        <div class="card h-100 border-{% if c.ok is True %}success{% elif c.ok is None %}secondary{% else %}danger{% endif %}">
+        <div class="card health-card h-100 {% if c.ok is True %}is-ok{% elif c.ok is not None %}is-down{% endif %}">
           <div class="card-body">
             <div class="d-flex justify-content-between">
-              <h2 class="h6 mb-1">{{ c.name }}</h2>
-              {% if c.ok is True %}<span class="badge text-bg-success">healthy</span>
-              {% elif c.ok is None %}<span class="badge text-bg-secondary">n/a</span>
-              {% else %}<span class="badge text-bg-danger">down</span>{% endif %}
+              <h2 class="h6 mb-1 fw-semibold">{{ c.name }}</h2>
+              {% if c.ok is True %}<span class="badge-soft badge-soft-success"><span class="status-dot"></span> healthy</span>
+              {% elif c.ok is None %}<span class="badge-soft badge-soft-secondary">n/a</span>
+              {% else %}<span class="badge-soft badge-soft-danger"><span class="status-dot"></span> down</span>{% endif %}
             </div>
             <div class="small text-break">{{ c.detail }}</div>
             <div class="small text-body-secondary">{{ c.latency_ms }} ms</div>

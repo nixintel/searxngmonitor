@@ -19,7 +19,9 @@ def _style(fields):
             field.widget.attrs.setdefault("class", "form-check-input")
         elif isinstance(field.widget, forms.Select):
             field.widget.attrs.setdefault("class", "form-select")
-        elif not isinstance(field.widget, forms.CheckboxSelectMultiple):
+        elif isinstance(field.widget, forms.CheckboxSelectMultiple):
+            field.widget.attrs.setdefault("class", "form-check-input")
+        else:
             field.widget.attrs.setdefault("class", "form-control")
 
 

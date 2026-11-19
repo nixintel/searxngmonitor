@@ -1,7 +1,7 @@
 {% extends "monitor/base.html" %}
 {% block title %}Ops · SearXNG Monitor{% endblock %}
 {% block content %}
-<h1 class="h3 mb-3">Operations</h1>
+<div class="mb-4"><h1 class="page-title">Operations</h1><div class="page-subtitle">Health, tasks, run history and logs.</div></div>
 <ul class="nav nav-tabs mb-3">
   {% for t in tabs %}
     <li class="nav-item"><a class="nav-link {% if t == tab %}active{% endif %}" href="?tab={{ t }}">{{ t|capfirst }}</a></li>

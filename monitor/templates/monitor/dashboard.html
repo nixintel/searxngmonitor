@@ -1,8 +1,11 @@
 {% extends "monitor/base.html" %}
 {% block title %}Dashboard · SearXNG Monitor{% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h1 class="h3 mb-0">Saved searches</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+  <div>
+    <h1 class="page-title">Saved searches</h1>
+    <div class="page-subtitle">Keywords and phrases being monitored across search engines.</div>
+  </div>
   <div class="d-flex gap-2">
     {% if total_new %}
     <form method="post" action="{% url 'mark-all-seen' %}" hx-post="{% url 'mark-all-seen' %}" hx-swap="none">{% csrf_token %}
@@ -19,12 +22,28 @@
   Some searches have email alerts on. Fix the <code>EMAIL_*</code> settings in <code>.env</code>, then use <a href="{% url 'settings' %}">Settings → Send test email</a>.</div>
 </div>
 {% endif %}
-<div class="row row-cols-2 row-cols-md-5 g-3 mb-4">
-  <div class="col"><div class="card"><div class="card-body"><div class="text-body-secondary small">Searches</div><div class="fs-4">{{ stats.searches }}</div></div></div></div>
-  <div class="col"><div class="card"><div class="card-body"><div class="text-body-secondary small">Enabled</div><div class="fs-4">{{ stats.enabled }}</div></div></div></div>
-  <div class="col"><div class="card"><div class="card-body"><div class="text-body-secondary small">Running / queued</div><div class="fs-4">{{ stats.active }}</div></div></div></div>
-  <div class="col"><div class="card"><div class="card-body"><div class="text-body-secondary small">Runs (24h)</div><div class="fs-4">{{ stats.runs_24h }}</div></div></div></div>
-  <div class="col"><div class="card"><div class="card-body"><div class="text-body-secondary small">Failed (24h)</div><div class="fs-4 {% if stats.failed_24h %}text-danger{% endif %}">{{ stats.failed_24h }}</div></div></div></div>
+
+<div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
+  <div class="col"><div class="card stat-card h-100"><div class="card-body">
+    <div class="stat-icon"><i class="bi bi-search"></i></div>
+    <div><div class="stat-label">Searches</div><div class="stat-value">{{ stats.searches }}</div></div>
+  </div></div></div>
+  <div class="col"><div class="card stat-card h-100"><div class="card-body">
+    <div class="stat-icon is-success"><i class="bi bi-play-circle"></i></div>
+    <div><div class="stat-label">Enabled</div><div class="stat-value">{{ stats.enabled }}</div></div>
+  </div></div></div>
+  <div class="col"><div class="card stat-card h-100"><div class="card-body">
+    <div class="stat-icon is-info"><i class="bi bi-arrow-repeat"></i></div>
+    <div><div class="stat-label">Running / queued</div><div class="stat-value">{{ stats.active }}</div></div>
+  </div></div></div>
+  <div class="col"><div class="card stat-card h-100"><div class="card-body">
+    <div class="stat-icon is-muted"><i class="bi bi-clock-history"></i></div>
+    <div><div class="stat-label">Runs (24h)</div><div class="stat-value">{{ stats.runs_24h }}</div></div>
+  </div></div></div>
+  <div class="col"><div class="card stat-card h-100"><div class="card-body">
+    <div class="stat-icon {% if stats.failed_24h %}is-danger{% else %}is-muted{% endif %}"><i class="bi bi-exclamation-octagon"></i></div>
+    <div><div class="stat-label">Failed (24h)</div><div class="stat-value {% if stats.failed_24h %}text-danger{% endif %}">{{ stats.failed_24h }}</div></div>
+  </div></div></div>
 </div>
 
 <div hx-get="{% url 'dashboard-table' %}" hx-trigger="every 30s, refreshTable from:body" hx-swap="innerHTML">

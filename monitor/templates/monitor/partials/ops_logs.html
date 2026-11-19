@@ -18,14 +18,14 @@
 
 <div id="logs-table" {% if page.number == 1 %}hx-get="{{ request.get_full_path }}" hx-trigger="every 10s" hx-select="#logs-table" hx-swap="outerHTML"{% endif %}>
   <div class="small text-body-secondary mb-1">{{ page.paginator.count }} entr{{ page.paginator.count|pluralize:"y,ies" }}{% if page.number == 1 %} · refreshes every 10s{% endif %}</div>
-  <div class="table-responsive">
-  <table class="table table-sm small align-top">
+  <div class="table-card"><div class="table-responsive">
+  <table class="table table-sm table-striped table-hover small align-top mb-0">
     <thead><tr><th style="width:11rem">Time</th><th>Level</th><th>Source</th><th>Message</th></tr></thead>
     <tbody>
     {% for log in page %}
       <tr>
         <td class="text-nowrap">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
-        <td><span class="badge {% if log.level == 'ERROR' or log.level == 'CRITICAL' %}text-bg-danger{% elif log.level == 'WARNING' %}text-bg-warning{% elif log.level == 'INFO' %}text-bg-info{% else %}text-bg-secondary{% endif %}">{{ log.level }}</span></td>
+        <td><span class="badge-soft {% if log.level == 'ERROR' or log.level == 'CRITICAL' %}badge-soft-danger{% elif log.level == 'WARNING' %}badge-soft-warning{% elif log.level == 'INFO' %}badge-soft-info{% else %}badge-soft-secondary{% endif %}">{{ log.level }}</span></td>
         <td class="text-nowrap">{{ log.logger }}{% if log.search %}<br><a href="{% url 'search-detail' log.search_id %}">{{ log.search.name }}</a>{% endif %}{% if log.run_id %} <span class="text-body-secondary">run {{ log.run_id }}</span>{% endif %}</td>
         <td class="log-msg">{{ log.message }}</td>
       </tr>
@@ -34,7 +34,7 @@
     {% endfor %}
     </tbody>
   </table>
-  </div>
+  </div></div>
   {% url 'ops-logs' as hx_url %}
   {% include "monitor/partials/pagination.html" with hx_url=hx_url hx_target="#tab-content" %}
 </div>

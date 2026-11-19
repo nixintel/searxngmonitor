@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row justify-content-center">
 <div class="col-lg-9 col-xl-7">
-<h1 class="h3 mb-3">{% if object %}Edit “{{ object.name }}”{% else %}New search{% endif %}</h1>
+<h1 class="page-title mb-4">{% if object %}Edit “{{ object.name }}”{% else %}New search{% endif %}</h1>
 
 <form method="post" novalidate>
   {% csrf_token %}

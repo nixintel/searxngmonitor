@@ -12,8 +12,14 @@ You don't need to know anything about how the app is built. You only need Docker
 
 ### What you need
 
-* **Docker Desktop**, installed and running. Download it from <https://www.docker.com/products/docker-desktop/>.
-  On Windows, accept the default WSL 2 option during install.
+* **Docker**, with the Compose plugin:
+  * **Windows:** install **Docker Desktop** from <https://www.docker.com/products/docker-desktop/> and accept the
+    default WSL 2 option during install. Start Docker Desktop before you begin.
+  * **macOS:** use the Docker runtime you already have (for example OrbStack, Colima or Docker Desktop) and make
+    sure it's running.
+  * **Linux:** install Docker Engine and the Compose plugin by following
+    <https://docs.docker.com/engine/install/>. Then add yourself to the `docker` group so you don't need `sudo`:
+    run `sudo usermod -aG docker $USER`, then log out and back in.
 * **Git**, to download the app. Check with `git --version`. If it's missing:
   * **Windows:** install it from <https://git-scm.com/download/win> (the default options are fine), then open a
     new PowerShell window.
@@ -27,8 +33,8 @@ To check that Docker is ready, open a terminal (on Windows: **Start → PowerShe
 docker compose version
 ```
 
-You should see a version number. If you get an error, start Docker Desktop, wait until it says *Engine running*,
-and try again.
+You should see a version number. If you get an error, make sure Docker is running (on Windows, start Docker
+Desktop and wait until it says *Engine running*; on Linux, run `sudo systemctl start docker`) and try again.
 
 ### Step 1: Download the app
 
@@ -41,18 +47,6 @@ cd searxngmonitor
 
 This creates a `searxngmonitor` folder in your home folder and moves you into it. **Run every command from now
 on inside this folder.** If you close the terminal, open a new one and run `cd searxngmonitor` first.
-
-<details>
-<summary>No Git? Download a ZIP instead</summary>
-
-1. Open <https://github.com/nixintel/searxngmonitor>, click the green **Code** button and choose **Download ZIP**.
-2. Extract the ZIP. You get a folder called `searxngmonitor-main`.
-3. Open a terminal in that folder:
-   * **Windows:** open the folder in File Explorer, click the address bar, type `powershell` and press **Enter**.
-   * **macOS:** right-click the folder in Finder and choose **New Terminal at Folder**.
-
-With a ZIP you can't use `git pull` to get updates; download a new ZIP instead.
-</details>
 
 ### Step 2: Create your settings file and set your password
 
@@ -122,8 +116,8 @@ Run these from the project folder:
 | Get the latest version of the app | `git pull`, then `docker compose up -d --build` |
 | **Delete everything and start fresh** | `docker compose down -v` ⚠️ removes all searches and results |
 
-Searches keep running on schedule only while the app is running. Stopping Docker Desktop or shutting down your
-computer pauses them. Any overdue search runs once as soon as the app starts again.
+Searches keep running on schedule only while the app is running. Stopping Docker or shutting down your computer
+pauses them. Any overdue search runs once as soon as the app starts again.
 
 ---
 
@@ -299,7 +293,8 @@ Click **Ops** in the top menu.
 
 | Problem | What to do |
 |---|---|
-| `docker compose` says it can't connect / *daemon not running* | Start Docker Desktop and wait until it says *Engine running*. |
+| `docker compose` says it can't connect / *daemon not running* | Docker isn't running. **Windows:** start Docker Desktop and wait until it says *Engine running*. **macOS:** start your Docker runtime. **Linux:** run `sudo systemctl start docker`. |
+| *permission denied* … `docker.sock` (Linux) | Run `sudo usermod -aG docker $USER`, log out and back in, then try again. |
 | The browser can't open localhost:8000 | Run `docker compose ps`. If `web` isn't *healthy*, wait a minute. Still not working? Run `docker compose logs web` and look at the last lines. |
 | *Port 8000 is already allocated* | Another program is using that port. In `.env`, change `WEB_PORT=8000` to `WEB_PORT=8080` and `APP_BASE_URL` to `http://localhost:8080`, run `docker compose up -d`, and use <http://localhost:8080>. |
 | Forgot your password | Change `ADMIN_PASSWORD` in `.env` and run `docker compose up -d`. The new password applies once `web` restarts. |

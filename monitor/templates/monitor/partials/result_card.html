@@ -1,27 +1,27 @@
 {% load humanize monitor_tags %}
-<div class="card mb-2 {% if r.is_new %}result-new{% endif %} {% if r.is_deleted %}result-deleted{% endif %}" id="result-{{ r.pk }}"
+<div class="card result-card mb-2 {% if r.is_new %}result-new{% endif %} {% if r.is_deleted %}result-deleted{% endif %}" id="result-{{ r.pk }}"
      hx-vals='{"view": "{{ view|default:'' }}"}'>
-  <div class="card-body py-2">
-    <div class="d-flex gap-2 align-items-start">
+  <div class="card-body py-2 px-3">
+    <div class="d-flex gap-3 align-items-start">
       <input class="form-check-input mt-1 result-select flex-shrink-0" type="checkbox" name="ids" value="{{ r.pk }}" form="bulk-form" aria-label="Select result">
       <div class="flex-grow-1" style="min-width:0">
-        <div class="d-flex justify-content-between gap-2">
-          <a href="{{ r.url|safe_href }}" target="_blank" rel="noopener noreferrer" class="fw-semibold text-break">{{ r.title|default:r.url }}</a>
-          <div class="text-nowrap d-flex gap-1 align-items-start">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <a href="{{ r.url|safe_href }}" target="_blank" rel="noopener noreferrer" class="result-title text-break">{{ r.title|default:r.url }}</a>
+          <div class="text-nowrap d-flex gap-1 align-items-center">
             {% if r.is_new %}
-              <button class="btn btn-sm btn-link p-0 me-1" title="Mark seen"
+              <button class="icon-btn" title="Mark seen"
                       hx-post="{% url 'result-action' r.pk 'seen' %}" hx-target="#result-{{ r.pk }}" hx-swap="outerHTML">
-                <span class="badge text-bg-warning">new</span> <i class="bi bi-check2"></i></button>
+                <span class="badge-soft badge-soft-warning">new <i class="bi bi-check2"></i></span></button>
             {% endif %}
             {% if not r.is_deleted %}
-              <button class="btn btn-sm btn-link p-0 {% if 'interesting' in r.tag_names %}text-warning{% else %}text-body-secondary{% endif %}"
+              <button class="icon-btn {% if 'interesting' in r.tag_names %}is-star{% endif %}"
                       title="{% if 'interesting' in r.tag_names %}Remove 'interesting' tag{% else %}Tag as interesting{% endif %}"
                       hx-post="{% url 'result-action' r.pk 'star' %}" hx-target="#result-{{ r.pk }}" hx-swap="outerHTML">
                 <i class="bi {% if 'interesting' in r.tag_names %}bi-star-fill{% else %}bi-star{% endif %}"></i></button>
-              <button class="btn btn-sm btn-link p-0 text-danger ms-1" title="Delete result"
+              <button class="icon-btn is-danger" title="Delete result"
                       hx-post="{% url 'result-action' r.pk 'delete' %}" hx-target="#result-{{ r.pk }}" hx-swap="outerHTML"
                       {% if r.tag_names %}hx-confirm="This result is tagged. Delete it anyway?"{% endif %}>
-                <i class="bi bi-trash"></i></button>
+                <i class="bi bi-trash3"></i></button>
             {% else %}
               <button class="btn btn-sm btn-outline-secondary py-0" title="Restore result"
                       hx-post="{% url 'result-action' r.pk 'restore' %}" hx-target="#result-{{ r.pk }}" hx-swap="outerHTML">
@@ -29,30 +29,29 @@
             {% endif %}
           </div>
         </div>
-        <div class="small text-success text-break">{{ r.url|truncatechars:120 }}</div>
-        {% if r.content %}<div class="small mt-1">{{ r.content|truncatechars:350 }}</div>{% endif %}
+        <div class="result-url text-break">{{ r.url|truncatechars:120 }}</div>
+        {% if r.content %}<div class="result-snippet mt-1">{{ r.content|truncatechars:350 }}</div>{% endif %}
 
-        <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+        <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
           {% for t in r.tags.all %}
-            <span class="badge rounded-pill {% if t.name == 'interesting' %}text-bg-warning{% else %}text-bg-primary{% endif %} d-inline-flex align-items-center gap-1">
-              <a href="{% url 'search-detail' r.search_id %}?view=tagged&tag={{ t.pk }}" class="text-reset text-decoration-none">{{ t.name }}</a>
-              <button class="btn p-0 border-0 text-reset lh-1" title="Remove tag" aria-label="Remove tag {{ t.name }}"
+            <span class="tag-chip {% if t.name == 'interesting' %}is-star{% endif %}">
+              <a href="{% url 'search-detail' r.search_id %}?view=tagged&tag={{ t.pk }}">{% if t.name == 'interesting' %}<i class="bi bi-star-fill"></i> {% endif %}{{ t.name }}</a>
+              <button title="Remove tag" aria-label="Remove tag {{ t.name }}"
                       hx-post="{% url 'result-tag-remove' r.pk t.pk %}" hx-target="#result-{{ r.pk }}" hx-swap="outerHTML">&times;</button>
             </span>
           {% endfor %}
           {% if not r.is_deleted %}
             <form class="d-inline-flex" hx-post="{% url 'result-tag-add' r.pk %}" hx-target="#result-{{ r.pk }}" hx-swap="outerHTML">
               <input name="tag" list="tag-options" maxlength="50" autocomplete="off"
-                     class="form-control form-control-sm py-0 tag-input" placeholder="+ tag" aria-label="Add tag">
+                     class="form-control form-control-sm tag-input" placeholder="+ tag" aria-label="Add tag">
             </form>
           {% endif %}
-        </div>
-
-        <div class="small text-body-secondary mt-1">
-          first seen {{ r.first_seen_at|naturaltime }}
-          {% if r.published_date %}· published {{ r.published_date|date:"Y-m-d" }}{% endif %}
-          · {{ r.engines|join:", " }}
-          {% if r.is_deleted %}· <span class="text-danger">deleted {{ r.deleted_at|naturaltime }}</span>{% endif %}
+          <span class="result-meta ms-auto">
+            first seen {{ r.first_seen_at|naturaltime }}
+            {% if r.published_date %}· published {{ r.published_date|date:"Y-m-d" }}{% endif %}
+            · {{ r.engines|join:", " }}
+            {% if r.is_deleted %}· <span class="text-danger">deleted {{ r.deleted_at|naturaltime }}</span>{% endif %}
+          </span>
         </div>
       </div>
     </div>

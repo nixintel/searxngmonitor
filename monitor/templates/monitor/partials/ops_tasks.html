@@ -2,11 +2,11 @@
 <div id="tasks-panel" hx-get="{% url 'ops-tasks' %}" hx-trigger="every 10s" hx-select="#tasks-panel" hx-swap="outerHTML">
 <div class="row g-4">
   <div class="col-xl-6">
-    <h2 class="h5">Queued &amp; running runs <span class="badge text-bg-secondary">{{ active_runs|length }}</span></h2>
+    <h2 class="h5">Queued &amp; running runs <span class="badge-soft badge-soft-secondary align-middle">{{ active_runs|length }}</span></h2>
     {% include "monitor/partials/run_table.html" with runs=active_runs show_search=True %}
 
     <h2 class="h5 mt-4">Upcoming scheduled searches</h2>
-    <table class="table table-sm small">
+    <div class="table-card"><table class="table table-sm table-striped table-hover small">
       <thead><tr><th>Search</th><th>Next search</th><th>Last search</th><th>Schedule</th></tr></thead>
       <tbody>
       {% for s in upcoming %}
@@ -18,7 +18,7 @@
         </tr>
       {% empty %}<tr><td colspan="4" class="text-body-secondary">No enabled searches.</td></tr>{% endfor %}
       </tbody>
-    </table>
+    </table></div>
   </div>
 
   <div class="col-xl-6">

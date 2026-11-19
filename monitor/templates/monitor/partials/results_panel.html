@@ -1,12 +1,12 @@
 {% load monitor_tags %}
 <datalist id="tag-options">{% for t in all_tags %}<option value="{{ t.name }}">{% endfor %}</datalist>
 
-<ul class="nav nav-pills mb-2 flex-wrap">
+<ul class="nav nav-pills mb-3 flex-wrap">
   {% for key, label, icon in result_tabs %}
     <li class="nav-item">
       <a class="nav-link py-1 {% if view == key %}active{% endif %}" href="?view={{ key }}">
         <i class="bi {{ icon }}"></i> {{ label }}
-        <span class="badge {% if view == key %}text-bg-light{% else %}text-bg-secondary{% endif %}">{{ counts|get_item:key }}</span>
+        <span class="badge rounded-pill ms-1">{{ counts|get_item:key }}</span>
       </a>
     </li>
   {% endfor %}
@@ -15,9 +15,9 @@
 {% if view == "tagged" or active_tag %}
   <div class="d-flex flex-wrap gap-1 mb-2 align-items-center small">
     <span class="text-body-secondary me-1">Tags:</span>
-    <a href="?view=tagged" class="badge rounded-pill text-decoration-none {% if not active_tag %}text-bg-dark{% else %}text-bg-light border{% endif %}">all tagged</a>
+    <a href="?view=tagged" class="badge-soft {% if not active_tag %}badge-soft-accent{% else %}badge-soft-secondary{% endif %}">all tagged</a>
     {% for t in search_tags %}
-      <a href="?view=tagged&tag={{ t.pk }}" class="badge rounded-pill text-decoration-none {% if active_tag == t.pk|stringformat:'s' %}text-bg-primary{% else %}text-bg-light border{% endif %}">{{ t.name }} <span class="opacity-75">{{ t.n }}</span></a>
+      <a href="?view=tagged&tag={{ t.pk }}" class="badge-soft {% if active_tag == t.pk|stringformat:'s' %}badge-soft-accent{% else %}badge-soft-secondary{% endif %}">{{ t.name }} <span class="opacity-75">{{ t.n }}</span></a>
     {% empty %}
       <span class="text-body-secondary">No tagged results yet. Use <i class="bi bi-star"></i> or “+ tag” on a result.</span>
     {% endfor %}
@@ -34,7 +34,7 @@
 </div>
 
 <form method="post" action="{% url 'results-bulk' search.pk %}" id="bulk-form"
-      class="d-flex flex-wrap gap-2 align-items-center border rounded p-2 mb-2 bg-body-tertiary small">
+      class="bulk-bar d-flex flex-wrap gap-2 align-items-center border p-2 mb-3 small">
   {% csrf_token %}
   <input type="hidden" name="next" value="{{ request.get_full_path }}">
   <div class="form-check mb-0">
