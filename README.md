@@ -48,7 +48,7 @@ cd searxngmonitor
 This creates a `searxngmonitor` folder in your home folder and moves you into it. **Run every command from now
 on inside this folder.** If you close the terminal, open a new one and run `cd searxngmonitor` first.
 
-### Step 2: Create your settings file and set your password
+### Step 2: Create your settings file and set your passwords
 
 Copy the example settings file, then open it in a text editor.
 
@@ -66,14 +66,24 @@ cp .env.example .env
 nano .env
 ```
 
-Find this line:
+Find these two lines:
 
 ```
 ADMIN_PASSWORD=change-me
+POSTGRES_PASSWORD=change-me
 ```
 
-Change `change-me` to a password of your choice, then save and close the file. In nano, press
-**Ctrl+O**, **Enter**, then **Ctrl+X**. Leave everything else as it is.
+Change each `change-me` to a password of your choice:
+
+* `ADMIN_PASSWORD` is the password you log in to the app with.
+* `POSTGRES_PASSWORD` protects the database. You never type it anywhere else, so it can be any long random
+  string. Use a different password from `ADMIN_PASSWORD`.
+
+Save and close the file. In nano, press **Ctrl+O**, **Enter**, then **Ctrl+X**. Leave everything else as it is.
+
+> ⚠️ Set `POSTGRES_PASSWORD` **before** you start the app for the first time. The database is created with
+> this password on the first start, and changing it afterwards stops the app from connecting (see
+> [Troubleshooting](#troubleshooting)).
 
 ### Step 3: Start the app
 
@@ -356,6 +366,7 @@ Click **Ops** in the top menu.
 | The browser can't open localhost:8000 | Run `docker compose ps`. If `web` isn't *healthy*, wait a minute. Still not working? Run `docker compose logs web` and look at the last lines. |
 | *Port 8000 is already allocated* | Another program is using that port. In `.env`, change `WEB_PORT=8000` to `WEB_PORT=8080` and `APP_BASE_URL` to `http://localhost:8080`, run `docker compose up -d`, and use <http://localhost:8080>. |
 | Forgot your password | Change `ADMIN_PASSWORD` in `.env` and run `docker compose up -d`. The new password applies once `web` restarts. |
+| `docker compose logs web` shows *password authentication failed for user "searxngmonitor"* | `POSTGRES_PASSWORD` in `.env` was changed after the first start. Put the original password back and run `docker compose up -d`. If you don't remember it, start clean with `docker compose down -v`, then `docker compose up -d --build`. ⚠️ This deletes all your searches and results. |
 | A run shows **failed** | Hover over *failed* or open **Ops → History**. *"all engines failed"* usually means the engines blocked you, so try other engines or a longer interval. |
 | A search finds 0 results | Simplify the query (see above), and check the run history for ⚠️ unresponsive engines. |
 | Times look wrong | Times are shown in UTC by default. Set your time zone in `.env`, e.g. `TIME_ZONE=Europe/London` or `TIME_ZONE=America/New_York`, then run `docker compose up -d`. |
@@ -421,6 +432,7 @@ Run `docker compose up -d` after any change.
 | Setting | What it does |
 |---|---|
 | `ADMIN_PASSWORD` | Your login password. |
+| `POSTGRES_PASSWORD` | The database password. Set it before the first start and don't change it afterwards. |
 | `WEB_PORT` | The port for the app (default `8000`). |
 | `TIME_ZONE` | Time zone for displayed times, e.g. `Europe/London`. |
 | `DEFAULT_ENGINES` | Engines ticked by default for new searches (also editable under **Settings**). |
