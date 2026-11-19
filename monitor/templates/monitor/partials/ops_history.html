@@ -1,0 +1,27 @@
+<form class="row g-2 mb-3" hx-get="{% url 'ops-history' %}" hx-target="#tab-content" hx-trigger="change">
+  <div class="col-sm-4">
+    <select name="search" class="form-select form-select-sm">
+      <option value="">All searches</option>
+      {% for s in searches %}<option value="{{ s.pk }}" {% if filters.search == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-3">
+    <select name="status" class="form-select form-select-sm">
+      <option value="">Any status</option>
+      {% for v, l in statuses %}<option value="{{ v }}" {% if filters.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-3">
+    <select name="trigger" class="form-select form-select-sm">
+      <option value="">Any trigger</option>
+      {% for v, l in triggers %}<option value="{{ v }}" {% if filters.trigger == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+  </div>
+</form>
+
+<div id="history-table" {% if page.number == 1 %}hx-get="{{ request.get_full_path }}" hx-trigger="every 15s" hx-select="#history-table" hx-swap="outerHTML"{% endif %}>
+  <div class="small text-body-secondary mb-1">{{ page.paginator.count }} run(s){% if page.number == 1 %} · refreshes every 15s{% endif %}</div>
+  {% include "monitor/partials/run_table.html" with runs=page.object_list show_search=True %}
+  {% url 'ops-history' as hx_url %}
+  {% include "monitor/partials/pagination.html" with hx_url=hx_url hx_target="#tab-content" %}
+</div>

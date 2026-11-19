@@ -1,0 +1,30 @@
+from django.urls import path
+
+from monitor import views
+
+urlpatterns = [
+    path("", views.DashboardView.as_view(), name="dashboard"),
+    path("partials/table/", views.dashboard_table, name="dashboard-table"),
+    path("partials/badge/", views.new_badge, name="new-badge"),
+    path("searches/new/", views.SearchCreateView.as_view(), name="search-create"),
+    path("searches/<int:pk>/", views.SearchDetailView.as_view(), name="search-detail"),
+    path("searches/<int:pk>/edit/", views.SearchUpdateView.as_view(), name="search-edit"),
+    path("searches/<int:pk>/delete/", views.SearchDeleteView.as_view(), name="search-delete"),
+    path("searches/<int:pk>/run/", views.run_now, name="search-run"),
+    path("searches/<int:pk>/toggle/", views.toggle_enabled, name="search-toggle"),
+    path("searches/<int:pk>/mark-seen/", views.mark_seen, name="search-mark-seen"),
+    path("searches/<int:pk>/runs/", views.search_runs, name="search-runs"),
+    path("results/mark-seen/", views.mark_seen, name="mark-all-seen"),
+    path("searches/<int:pk>/results/bulk/", views.bulk_results, name="results-bulk"),
+    path("results/<int:pk>/tags/add/", views.result_tag_add, name="result-tag-add"),
+    path("results/<int:pk>/tags/<int:tag_id>/remove/", views.result_tag_remove, name="result-tag-remove"),
+    path("results/<int:pk>/<str:action>/", views.result_action, name="result-action"),
+    path("ops/", views.OpsView.as_view(), name="ops"),
+    path("ops/health/", views.ops_health, name="ops-health"),
+    path("ops/tasks/", views.ops_tasks, name="ops-tasks"),
+    path("ops/history/", views.ops_history, name="ops-history"),
+    path("ops/logs/", views.ops_logs, name="ops-logs"),
+    path("settings/", views.SettingsView.as_view(), name="settings"),
+    path("settings/test/<str:channel>/", views.test_notification, name="test-notification"),
+    path("engines.json", views.engines_json, name="engines-json"),
+]

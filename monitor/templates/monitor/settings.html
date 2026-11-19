@@ -1,0 +1,57 @@
+{% extends "monitor/base.html" %}
+{% block title %}Settings · SearXNG Monitor{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8 col-xl-6">
+<h1 class="h3 mb-3">Settings</h1>
+<form method="post">{% csrf_token %}
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h6 text-body-secondary text-uppercase">Default engines for new searches</h2>
+    <div class="engine-box border rounded p-2">
+      {% for cb in form.default_engines %}
+        <div class="form-check">{{ cb.tag }}<label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label></div>
+      {% endfor %}
+    </div>
+  </div></div>
+
+  <div class="card mb-3 {% if not email_status.ok %}border-warning{% endif %}"><div class="card-body">
+    <h2 class="h6 text-body-secondary text-uppercase">Email</h2>
+    {% if email_status.ok %}
+      <div class="small mb-2"><i class="bi bi-check-circle-fill text-success"></i> {{ email_status.message }}</div>
+    {% else %}
+      <div class="alert alert-warning py-2 small"><i class="bi bi-exclamation-triangle-fill"></i> {{ email_status.message }}
+        Set <code>EMAIL_HOST</code>, <code>EMAIL_PORT</code>, <code>EMAIL_HOST_USER</code>, <code>EMAIL_HOST_PASSWORD</code> and
+        <code>EMAIL_USE_TLS</code> in <code>.env</code>, then run <code>docker compose up -d</code>.</div>
+    {% endif %}
+    {% include "monitor/partials/field.html" with field=form.notify_address %}
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-post="{% url 'test-notification' 'email' %}"
+            hx-vals='js:{to: document.getElementById("id_notify_address").value}' hx-swap="none">
+      <i class="bi bi-send"></i> Send test email</button>
+  </div></div>
+
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h6 text-body-secondary text-uppercase">Slack</h2>
+    {% include "monitor/partials/field.html" with field=form.slack_webhook_url %}
+    <div class="form-text mb-2">Create one in Slack: <em>Apps → Incoming Webhooks → Add to Slack → choose a channel</em>.
+      <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener">Slack's guide</a>.
+      Treat the URL like a password: anyone who has it can post to that channel.</div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" hx-post="{% url 'test-notification' 'slack' %}"
+            hx-vals='js:{webhook: document.getElementById("id_slack_webhook_url").value}' hx-swap="none">
+      <i class="bi bi-slack"></i> Send test message</button>
+  </div></div>
+
+  <div class="card mb-3"><div class="card-body">
+    {% include "monitor/partials/field.html" with field=form.retention_days %}
+  </div></div>
+  <button class="btn btn-primary">Save</button>
+</form>
+
+<div class="card mt-4"><div class="card-body small">
+  <h2 class="h6">Environment (read-only, set in <code>.env</code>)</h2>
+  <ul class="mb-0">
+    <li>Proxy instance: {% if proxy_enabled %}<span class="text-success">enabled</span>{% else %}disabled{% endif %}</li>
+    <li>API token: <code>POST /api/v1/auth/token/</code> with username/password, or see the admin.</li>
+    <li>Admin: <a href="{% url 'admin:index' %}">/admin/</a></li>
+  </ul>
+</div></div>
+</div></div>
+{% endblock %}

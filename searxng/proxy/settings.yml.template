@@ -1,0 +1,37 @@
+# SearXNG settings for the PROXY instance.
+# __PROXY_URL__ is replaced with PROXY_URL from .env by the searxng-proxy-config
+# container at startup. Supported: http://, https://, socks5://, socks5h://
+#   e.g. PROXY_URL=socks5h://user:pass@proxyhost:1080
+use_default_settings: true
+
+general:
+  instance_name: "searxngmonitor-proxy"
+
+server:
+  secret_key: "overridden-by-SEARXNG_SECRET"
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json
+
+outgoing:
+  request_timeout: 10.0   # proxies add latency
+  max_request_timeout: 20.0
+  proxies:
+    all://:
+      - __PROXY_URL__
+
+engines:
+  - name: brave
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: yahoo
+    disabled: false
+  - name: mwmbl
+    disabled: false

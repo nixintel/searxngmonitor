@@ -1,0 +1,81 @@
+{% extends "monitor/base.html" %}
+{% block title %}{% if object %}Edit {{ object.name }}{% else %}New search{% endif %} · SearXNG Monitor{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-9 col-xl-7">
+<h1 class="h3 mb-3">{% if object %}Edit “{{ object.name }}”{% else %}New search{% endif %}</h1>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if not email_status.ok %}
+    <div class="alert alert-warning d-flex gap-2" role="alert">
+      <i class="bi bi-envelope-exclamation fs-5"></i>
+      <div><strong>Email alerts are not available.</strong> {{ email_status.message }}
+        Set the <code>EMAIL_*</code> values in <code>.env</code> and restart the stack. Slack alerts and the dashboard still work.</div>
+    </div>
+  {% endif %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h6 text-body-secondary text-uppercase">What to monitor</h2>
+    {% include "monitor/partials/field.html" with field=form.name %}
+    {% include "monitor/partials/field.html" with field=form.query %}
+  </div></div>
+
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h6 text-body-secondary text-uppercase">Engines</h2>
+    <input type="search" class="form-control form-control-sm mb-2" placeholder="Filter engines…" id="engine-filter">
+    <div class="engine-box border rounded p-2 mb-1" id="engine-box">
+      {% for cb in form.engines %}
+        <div class="form-check" data-name="{{ cb.choice_label }}">
+          {{ cb.tag }}<label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="form-text mb-2">{{ form.engines.help_text }}
+      <a href="#" id="engines-none">Clear</a></div>
+    {% if form.engines.errors %}<div class="text-danger small">{{ form.engines.errors }}</div>{% endif %}
+    <div class="row g-3">
+      <div class="col-md-4">{% include "monitor/partials/field.html" with field=form.categories %}</div>
+      <div class="col-md-4">{% include "monitor/partials/field.html" with field=form.language %}</div>
+      <div class="col-md-4">{% include "monitor/partials/field.html" with field=form.time_range %}</div>
+    </div>
+    {% include "monitor/partials/field.html" with field=form.max_pages %}
+  </div></div>
+
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h6 text-body-secondary text-uppercase">Schedule</h2>
+    <div class="row g-3">
+      <div class="col-6">{% include "monitor/partials/field.html" with field=form.interval_value %}</div>
+      <div class="col-6">{% include "monitor/partials/field.html" with field=form.interval_unit %}</div>
+    </div>
+    {% include "monitor/partials/check.html" with field=form.enabled %}
+    {% include "monitor/partials/check.html" with field=form.use_proxy %}
+    {% if not proxy_enabled %}<div class="form-text text-warning mb-2"><i class="bi bi-exclamation-triangle"></i> The proxy instance is currently disabled; searches set to use it will fail.</div>{% endif %}
+    {% include "monitor/partials/check.html" with field=form.baseline_first_run %}
+  </div></div>
+
+{% include "monitor/partials/notify_fields.html" %}
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary">Save</button>
+    <a class="btn btn-outline-secondary" href="{% if object %}{% url 'search-detail' object.pk %}{% else %}{% url 'dashboard' %}{% endif %}">Cancel</a>
+  </div>
+</form>
+</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById('engine-filter').addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#engine-box .form-check').forEach(el => {
+      el.style.display = el.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+  document.getElementById('engines-none').addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelectorAll('#engine-box input[type=checkbox]').forEach(cb => cb.checked = false);
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% load monitor_tags %}<!doctype html>
+<html><body style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; color: #222;">
+  <h2 style="margin:0 0 4px">{{ total }} new result{{ total|pluralize }} for “{{ search.name }}”</h2>
+  <div style="color:#666; margin-bottom:16px">Query: <code>{{ search.query }}</code></div>
+  {% for r in results %}
+    <div style="margin-bottom:14px">
+      <a href="{{ r.url|safe_href }}" style="font-weight:600; color:#0b57d0">{{ r.title|default:r.url }}</a><br>
+      <span style="color:#188038; font-size:12px">{{ r.url|truncatechars:120 }}</span>
+      {% if r.content %}<div style="margin-top:2px">{{ r.content|truncatechars:240 }}</div>{% endif %}
+    </div>
+  {% endfor %}
+  {% if truncated %}<p>Showing {{ results|length }} of {{ total }}.</p>{% endif %}
+  <p><a href="{{ detail_url }}?new=1">Open in SearXNG Monitor →</a></p>
+</body></html>

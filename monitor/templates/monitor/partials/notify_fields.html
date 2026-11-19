@@ -1,0 +1,29 @@
+<div class="card mb-3 {% if not email_status.ok %}border-warning{% endif %}"><div class="card-body">
+  <h2 class="h6 text-body-secondary text-uppercase">Notifications</h2>
+
+  <div class="mb-3">
+    {% include "monitor/partials/check.html" with field=form.notify_email %}
+    {% if not email_status.ok %}
+      <div class="alert alert-warning py-2 small mb-2">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        {% if email_status.configured %}Email server unreachable{% else %}No email server configured{% endif %}:
+        emails for this search will not be delivered until this is fixed.
+        <span class="text-body-secondary">({{ email_status.message }})</span>
+      </div>
+    {% else %}
+      <div class="form-text mt-0 mb-2"><i class="bi bi-check-circle text-success"></i> {{ email_status.message }}
+        {% if email_status.default_recipient %}· default recipient {{ email_status.default_recipient }}{% else %}· no default recipient set (<a href="{% url 'settings' %}">Settings</a>){% endif %}
+      </div>
+    {% endif %}
+    {% include "monitor/partials/field.html" with field=form.notify_address %}
+  </div>
+
+  <div>
+    {% include "monitor/partials/check.html" with field=form.notify_slack %}
+    {% if not slack_default %}
+      <div class="form-text mt-0 mb-2">No default Slack webhook is set in <a href="{% url 'settings' %}">Settings</a>, so paste one below to use Slack.
+        <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener">How to get a webhook URL</a></div>
+    {% endif %}
+    {% include "monitor/partials/field.html" with field=form.slack_webhook_url %}
+  </div>
+</div></div>

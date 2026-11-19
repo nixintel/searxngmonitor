@@ -1,0 +1,46 @@
+{% load humanize %}
+<div id="tasks-panel" hx-get="{% url 'ops-tasks' %}" hx-trigger="every 10s" hx-select="#tasks-panel" hx-swap="outerHTML">
+<div class="row g-4">
+  <div class="col-xl-6">
+    <h2 class="h5">Queued &amp; running runs <span class="badge text-bg-secondary">{{ active_runs|length }}</span></h2>
+    {% include "monitor/partials/run_table.html" with runs=active_runs show_search=True %}
+
+    <h2 class="h5 mt-4">Upcoming scheduled searches</h2>
+    <table class="table table-sm small">
+      <thead><tr><th>Search</th><th>Next search</th><th>Last search</th><th>Schedule</th></tr></thead>
+      <tbody>
+      {% for s in upcoming %}
+        <tr>
+          <td><a href="{% url 'search-detail' s.pk %}">{{ s.name }}</a></td>
+          <td title="{{ s.next_run_at }}">{{ s.next_run_at|naturaltime }}</td>
+          <td title="{{ s.last_run_at }}">{{ s.last_run_at|naturaltime|default:"—" }}</td>
+          <td>{{ s.interval_display }}</td>
+        </tr>
+      {% empty %}<tr><td colspan="4" class="text-body-secondary">No enabled searches.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col-xl-6">
+    <h2 class="h5">Celery workers</h2>
+    {% if celery.error %}
+      <div class="alert alert-danger small">Could not inspect workers: {{ celery.error }}</div>
+    {% elif not celery.workers %}
+      <div class="alert alert-warning small">No workers responded.</div>
+    {% else %}
+      {% for w in celery.workers %}
+        <div class="card mb-2"><div class="card-body py-2">
+          <div class="d-flex justify-content-between">
+            <strong class="small">{{ w.name }}</strong>
+            <span class="small text-body-secondary">concurrency {{ w.concurrency|default:"?" }} · {{ w.active|length }} active · {{ w.reserved }} reserved</span>
+          </div>
+          {% for t in w.active %}
+            <div class="small font-monospace text-break">{{ t.name }} {{ t.args }} <span class="text-body-secondary">{{ t.id }}</span></div>
+          {% endfor %}
+        </div></div>
+      {% endfor %}
+    {% endif %}
+    <p class="small text-body-secondary">Refreshes every 10s. Enable the <code>flower</code> profile for deeper Celery inspection on port 5555.</p>
+  </div>
+</div>
+</div>

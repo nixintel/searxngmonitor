@@ -1,0 +1,15 @@
+{% extends "monitor/base.html" %}
+{% block title %}Ops · SearXNG Monitor{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Operations</h1>
+<ul class="nav nav-tabs mb-3">
+  {% for t in tabs %}
+    <li class="nav-item"><a class="nav-link {% if t == tab %}active{% endif %}" href="?tab={{ t }}">{{ t|capfirst }}</a></li>
+  {% endfor %}
+</ul>
+{% with "ops-"|add:tab as view_name %}
+<div id="tab-content" hx-get="{% url view_name %}?{{ query }}" hx-trigger="load" hx-swap="innerHTML">
+  <div class="text-body-secondary"><span class="spinner-border spinner-border-sm"></span> Loading…</div>
+</div>
+{% endwith %}
+{% endblock %}

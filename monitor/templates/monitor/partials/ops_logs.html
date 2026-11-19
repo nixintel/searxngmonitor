@@ -1,0 +1,41 @@
+<form class="row g-2 mb-3" hx-get="{% url 'ops-logs' %}" hx-target="#tab-content" hx-trigger="change, keyup changed delay:500ms from:input[name=q]">
+  <div class="col-sm-2">
+    <select name="level" class="form-select form-select-sm">
+      <option value="">All levels</option>
+      {% for l in levels %}<option value="{{ l }}" {% if filters.level == l %}selected{% endif %}>{{ l }}+</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-4">
+    <select name="search" class="form-select form-select-sm">
+      <option value="">All searches</option>
+      {% for s in searches %}<option value="{{ s.pk }}" {% if filters.search == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-4">
+    <input type="search" name="q" value="{{ filters.q }}" class="form-control form-control-sm" placeholder="Search messages…">
+  </div>
+</form>
+
+<div id="logs-table" {% if page.number == 1 %}hx-get="{{ request.get_full_path }}" hx-trigger="every 10s" hx-select="#logs-table" hx-swap="outerHTML"{% endif %}>
+  <div class="small text-body-secondary mb-1">{{ page.paginator.count }} entr{{ page.paginator.count|pluralize:"y,ies" }}{% if page.number == 1 %} · refreshes every 10s{% endif %}</div>
+  <div class="table-responsive">
+  <table class="table table-sm small align-top">
+    <thead><tr><th style="width:11rem">Time</th><th>Level</th><th>Source</th><th>Message</th></tr></thead>
+    <tbody>
+    {% for log in page %}
+      <tr>
+        <td class="text-nowrap">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+        <td><span class="badge {% if log.level == 'ERROR' or log.level == 'CRITICAL' %}text-bg-danger{% elif log.level == 'WARNING' %}text-bg-warning{% elif log.level == 'INFO' %}text-bg-info{% else %}text-bg-secondary{% endif %}">{{ log.level }}</span></td>
+        <td class="text-nowrap">{{ log.logger }}{% if log.search %}<br><a href="{% url 'search-detail' log.search_id %}">{{ log.search.name }}</a>{% endif %}{% if log.run_id %} <span class="text-body-secondary">run {{ log.run_id }}</span>{% endif %}</td>
+        <td class="log-msg">{{ log.message }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="text-body-secondary">No log entries.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% url 'ops-logs' as hx_url %}
+  {% include "monitor/partials/pagination.html" with hx_url=hx_url hx_target="#tab-content" %}
+</div>
+<p class="small text-body-secondary">Application logs from the web, worker and beat containers. Container stdout: <code>docker compose logs -f worker</code>.</p>

@@ -1,0 +1,134 @@
+# SearXNG Monitor stack.
+#   docker compose up -d --build
+# Optional profiles (set COMPOSE_PROFILES in .env, comma separated):
+#   proxy  - second SearXNG instance that sends all engine traffic via PROXY_URL
+#   flower - Celery Flower dashboard on :5555
+#   mail   - Mailpit SMTP sink + web UI on :8025 (for testing email alerts)
+
+# The image is built once (by "web") and reused by worker/beat/flower.
+x-app: &app
+  image: searxngmonitor-app
+  pull_policy: never
+  env_file: .env
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  web:
+    <<: *app
+    build: .
+    pull_policy: build
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  worker:
+    <<: *app
+    command: >
+      celery -A config worker
+      --loglevel=INFO
+      --concurrency=${CELERY_CONCURRENCY:-4}
+      --hostname=worker@%h
+
+  beat:
+    <<: *app
+    command: celery -A config beat --loglevel=INFO --schedule=/tmp/celerybeat-schedule
+
+  flower:
+    <<: *app
+    profiles: ["flower"]
+    command: celery -A config flower --port=5555 --basic-auth=${ADMIN_USER}:${ADMIN_PASSWORD}
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-searxngmonitor}
+      POSTGRES_USER: ${POSTGRES_USER:-searxngmonitor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Direct SearXNG instance (no proxy). Internal network only.
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
+      # Optional; Wikipedia/Wikidata/OSM engines refuse to load without it.
+      SEARXNG_CONTACT_URL: ${SEARXNG_CONTACT_URL:-}
+    volumes:
+      - ./searxng/direct:/etc/searxng:rw
+
+  # Renders the proxy instance's settings.yml from the template + PROXY_URL.
+  searxng-proxy-config:
+    image: alpine:3.20
+    profiles: ["proxy"]
+    environment:
+      PROXY_URL: ${PROXY_URL:-}
+    volumes:
+      - ./searxng/proxy/settings.yml.template:/template/settings.yml.template:ro
+      - searxng-proxy-config:/etc/searxng
+    command:
+      - sh
+      - -c
+      - |
+        [ -n "$$PROXY_URL" ] || { echo "PROXY_URL is empty - set it in .env"; exit 1; }
+        sed "s#__PROXY_URL__#$$PROXY_URL#g" /template/settings.yml.template > /etc/searxng/settings.yml
+        chmod 644 /etc/searxng/settings.yml
+        echo "searxng-proxy settings rendered"
+
+  # SearXNG instance whose outgoing engine requests go through PROXY_URL.
+  searxng-proxy:
+    image: searxng/searxng:latest
+    profiles: ["proxy"]
+    restart: unless-stopped
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
+      # Optional; Wikipedia/Wikidata/OSM engines refuse to load without it.
+      SEARXNG_CONTACT_URL: ${SEARXNG_CONTACT_URL:-}
+    volumes:
+      - searxng-proxy-config:/etc/searxng
+    depends_on:
+      searxng-proxy-config:
+        condition: service_completed_successfully
+
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["mail"]
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+
+volumes:
+  pgdata:
+  redisdata:
+  searxng-proxy-config:

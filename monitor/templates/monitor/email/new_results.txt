@@ -1,0 +1,11 @@
+{% autoescape off %}{{ total }} new result(s) for "{{ search.name }}"
+Query: {{ search.query }}
+
+{% for r in results %}- {{ r.title|default:r.url }}
+  {{ r.url }}
+{% if r.content %}  {{ r.content|truncatechars:240 }}
+{% endif %}
+{% endfor %}{% if truncated %}Showing {{ results|length }} of {{ total }}; see the app for the rest.
+{% endif %}
+View in SearXNG Monitor: {{ detail_url }}?new=1
+{% endautoescape %}

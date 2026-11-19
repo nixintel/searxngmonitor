@@ -1,0 +1,82 @@
+{% load monitor_tags %}
+<datalist id="tag-options">{% for t in all_tags %}<option value="{{ t.name }}">{% endfor %}</datalist>
+
+<ul class="nav nav-pills mb-2 flex-wrap">
+  {% for key, label, icon in result_tabs %}
+    <li class="nav-item">
+      <a class="nav-link py-1 {% if view == key %}active{% endif %}" href="?view={{ key }}">
+        <i class="bi {{ icon }}"></i> {{ label }}
+        <span class="badge {% if view == key %}text-bg-light{% else %}text-bg-secondary{% endif %}">{{ counts|get_item:key }}</span>
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+
+{% if view == "tagged" or active_tag %}
+  <div class="d-flex flex-wrap gap-1 mb-2 align-items-center small">
+    <span class="text-body-secondary me-1">Tags:</span>
+    <a href="?view=tagged" class="badge rounded-pill text-decoration-none {% if not active_tag %}text-bg-dark{% else %}text-bg-light border{% endif %}">all tagged</a>
+    {% for t in search_tags %}
+      <a href="?view=tagged&tag={{ t.pk }}" class="badge rounded-pill text-decoration-none {% if active_tag == t.pk|stringformat:'s' %}text-bg-primary{% else %}text-bg-light border{% endif %}">{{ t.name }} <span class="opacity-75">{{ t.n }}</span></a>
+    {% empty %}
+      <span class="text-body-secondary">No tagged results yet. Use <i class="bi bi-star"></i> or “+ tag” on a result.</span>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+  <form method="get" class="d-flex gap-2 flex-grow-1" style="max-width: 26rem">
+    <input type="hidden" name="view" value="{{ view }}">
+    {% if active_tag %}<input type="hidden" name="tag" value="{{ active_tag }}">{% endif %}
+    <input type="search" name="q" value="{{ filters.q }}" class="form-control form-control-sm" placeholder="Filter results…">
+  </form>
+  <span class="small text-body-secondary">{{ page.paginator.count }} shown</span>
+</div>
+
+<form method="post" action="{% url 'results-bulk' search.pk %}" id="bulk-form"
+      class="d-flex flex-wrap gap-2 align-items-center border rounded p-2 mb-2 bg-body-tertiary small">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <div class="form-check mb-0">
+    <input class="form-check-input" type="checkbox" id="select-all" aria-label="Select all on this page">
+    <label class="form-check-label" for="select-all">All on page</label>
+  </div>
+  <span class="text-body-secondary" id="selected-count">0 selected</span>
+  <div class="vr"></div>
+  {% if view == "deleted" %}
+    <button class="btn btn-sm btn-outline-secondary" name="action" value="restore"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+  {% else %}
+    <button class="btn btn-sm btn-outline-secondary" name="action" value="seen"><i class="bi bi-check2"></i> Mark seen</button>
+    <div class="input-group input-group-sm" style="width: auto">
+      <input name="tag" list="tag-options" class="form-control" placeholder="tag name" style="max-width: 9rem" maxlength="50">
+      <button class="btn btn-outline-primary" name="action" value="tag"><i class="bi bi-tag"></i> Tag</button>
+      <button class="btn btn-outline-secondary" name="action" value="untag" title="Remove this tag from the selected results">Untag</button>
+    </div>
+    <button class="btn btn-sm btn-outline-danger" name="action" value="delete"
+            onclick="return confirm('Delete the selected results? They will not be re-added by future runs. You can restore them from the Deleted tab.')"><i class="bi bi-trash"></i> Delete</button>
+  {% endif %}
+</form>
+
+{% for r in page %}
+  {% include "monitor/partials/result_card.html" %}
+{% empty %}
+  <p class="text-body-secondary">
+    {% if view == "tagged" %}No tagged results{% if active_tag %} with this tag{% endif %}.
+    {% elif view == "deleted" %}No deleted results.
+    {% elif view == "new" %}No new results.
+    {% elif filters.q %}No results match the filter.
+    {% else %}No results yet. Use “Run now” or wait for the next scheduled run.{% endif %}
+  </p>
+{% endfor %}
+{% include "monitor/partials/pagination.html" %}
+
+<script>
+  (function () {
+    const all = document.getElementById('select-all');
+    const count = document.getElementById('selected-count');
+    const boxes = () => document.querySelectorAll('.result-select');
+    const update = () => { count.textContent = [...boxes()].filter(b => b.checked).length + ' selected'; };
+    all.addEventListener('change', () => { boxes().forEach(b => b.checked = all.checked); update(); });
+    document.addEventListener('change', e => { if (e.target.classList.contains('result-select')) update(); });
+  })();
+</script>

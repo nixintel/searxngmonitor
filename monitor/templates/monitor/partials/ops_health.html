@@ -1,0 +1,25 @@
+<div id="health-panel" hx-get="{% url 'ops-health' %}" hx-trigger="every 20s" hx-select="#health-panel" hx-swap="outerHTML">
+  <div class="alert {% if overall_ok %}alert-success{% else %}alert-danger{% endif %} d-flex align-items-center gap-2">
+    <i class="bi {% if overall_ok %}bi-check-circle-fill{% else %}bi-x-octagon-fill{% endif %}"></i>
+    {% if overall_ok %}All components healthy.{% else %}One or more components are unhealthy.{% endif %}
+    <span class="ms-auto small">checked {{ checked_at|time:"H:i:s" }} · refreshes every 20s</span>
+  </div>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+    {% for c in checks %}
+      <div class="col">
+        <div class="card h-100 border-{% if c.ok is True %}success{% elif c.ok is None %}secondary{% else %}danger{% endif %}">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <h2 class="h6 mb-1">{{ c.name }}</h2>
+              {% if c.ok is True %}<span class="badge text-bg-success">healthy</span>
+              {% elif c.ok is None %}<span class="badge text-bg-secondary">n/a</span>
+              {% else %}<span class="badge text-bg-danger">down</span>{% endif %}
+            </div>
+            <div class="small text-break">{{ c.detail }}</div>
+            <div class="small text-body-secondary">{{ c.latency_ms }} ms</div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>

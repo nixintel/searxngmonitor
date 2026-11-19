@@ -1,0 +1,35 @@
+{% load humanize %}
+{% if runs %}
+<div class="table-responsive">
+<table class="table table-sm align-middle small">
+  <thead><tr>
+    <th>#</th>{% if show_search %}<th>Search</th>{% endif %}<th>When</th><th>Trigger</th><th>Status</th>
+    <th title="Returned / new">Results</th><th>Took</th>{% if show_search %}<th>Proxy</th><th>Error</th>{% endif %}
+  </tr></thead>
+  <tbody>
+  {% for run in runs %}
+    <tr>
+      <td>{{ run.pk }}</td>
+      {% if show_search %}<td><a href="{% url 'search-detail' run.search_id %}">{{ run.search.name }}</a></td>{% endif %}
+      <td><span title="{{ run.created_at }}">{{ run.created_at|naturaltime }}</span></td>
+      <td>{% if run.trigger == "manual" %}<i class="bi bi-hand-index" title="manual"></i>{% else %}<i class="bi bi-clock" title="scheduled"></i>{% endif %}</td>
+      <td>{% include "monitor/partials/status_badge.html" with status=run.status error=run.error %}</td>
+      <td>{% if run.status == "success" %}{{ run.results_returned }} / {% if run.new_results %}<strong class="text-warning-emphasis">{{ run.new_results }}</strong>{% else %}0{% endif %}{% endif %}
+        {% if run.unresponsive_engines %}<i class="bi bi-exclamation-triangle text-warning" title="Unresponsive: {% for e in run.unresponsive_engines %}{{ e.0 }}{% if e.1 %} ({{ e.1 }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}"></i>{% endif %}
+      </td>
+      <td>{% if run.duration %}{{ run.duration.total_seconds|floatformat:1 }}s{% endif %}</td>
+      {% if show_search %}
+        <td>{% if run.proxy_used %}<i class="bi bi-shield-lock text-info"></i>{% endif %}</td>
+        <td class="text-danger text-break">{{ run.error|truncatechars:120 }}</td>
+      {% endif %}
+    </tr>
+    {% if not show_search and run.error %}
+      <tr><td></td><td colspan="5" class="text-danger text-break pt-0 border-top-0">{{ run.error|truncatechars:200 }}</td></tr>
+    {% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="text-body-secondary small">No runs yet.</p>
+{% endif %}
