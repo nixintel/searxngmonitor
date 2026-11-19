@@ -87,11 +87,12 @@ class SearxngClient:
 
     @classmethod
     def proxied(cls, **kw):
-        if not settings.SEARXNG_PROXY_ENABLED:
-            raise SearxngError(
-                "This search is set to use the proxy, but the proxy instance is disabled "
-                "(set SEARXNG_PROXY_ENABLED=true and add 'proxy' to COMPOSE_PROFILES)."
-            )
+        from monitor.services.proxy_config import ProxyError, ensure_ready
+
+        try:
+            ensure_ready()  # refuses unless the proxy instance is running the current proxy settings
+        except ProxyError as exc:
+            raise SearxngError(str(exc)) from exc
         return cls(settings.SEARXNG_PROXY_URL, **kw)
 
     @classmethod

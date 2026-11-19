@@ -26,5 +26,7 @@ urlpatterns = [
     path("ops/logs/", views.ops_logs, name="ops-logs"),
     path("settings/", views.SettingsView.as_view(), name="settings"),
     path("settings/test/<str:channel>/", views.test_notification, name="test-notification"),
+    path("settings/proxy/status/", views.proxy_status, name="proxy-status"),
+    path("settings/proxy/test/", views.proxy_test, name="proxy-test"),
     path("engines.json", views.engines_json, name="engines-json"),
 ]

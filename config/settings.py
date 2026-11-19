@@ -125,7 +125,11 @@ APP_BASE_URL = env("APP_BASE_URL", "http://localhost:8000").rstrip("/")
 # ---------------------------------------------------------------- SearXNG / monitor
 SEARXNG_URL = env("SEARXNG_URL", "http://searxng:8080").rstrip("/")
 SEARXNG_PROXY_URL = env("SEARXNG_PROXY_URL", "http://searxng-proxy:8080").rstrip("/")
-SEARXNG_PROXY_ENABLED = env_bool("SEARXNG_PROXY_ENABLED", False)
+# Proxy settings are edited in the UI and written here for the searxng-proxy container (shared volume).
+SEARXNG_PROXY_TEMPLATE = env("SEARXNG_PROXY_TEMPLATE", str(BASE_DIR / "searxng" / "proxy" / "settings.yml.template"))
+SEARXNG_PROXY_CONFIG_PATH = env("SEARXNG_PROXY_CONFIG_PATH", "/app/run/searxng-proxy/settings.yml")
+# Used by Settings -> Proxy -> "Test proxy" to compare the public IP with and without the proxy.
+IP_ECHO_URL = env("IP_ECHO_URL", "https://api.ipify.org?format=json")
 SEARXNG_TIMEOUT = float(env("SEARXNG_TIMEOUT", "20"))
 SEARXNG_MAX_RETRIES = env_int("SEARXNG_MAX_RETRIES", 3)
 DEFAULT_ENGINES = env_list("DEFAULT_ENGINES", "brave,bing,yahoo,mwmbl")

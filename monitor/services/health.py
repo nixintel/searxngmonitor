@@ -56,9 +56,12 @@ def check_searxng(base_url):
 
 
 def check_proxy_instance():
-    if not settings.SEARXNG_PROXY_ENABLED:
-        return None, "disabled (SEARXNG_PROXY_ENABLED=false)"
-    return check_searxng(settings.SEARXNG_PROXY_URL)()
+    from monitor.services.proxy_config import instance_status
+
+    state, detail = instance_status()
+    if state == "off":
+        return None, "Proxy turned off in Settings"
+    return state == "applied", detail
 
 
 def check_workers():
@@ -102,7 +105,7 @@ def run_all_checks():
     ]
     # Checks that touch the DB run on this thread (Django connections are per-thread,
     # and a pool thread would leave its connection open); network probes run in parallel.
-    on_main = {"Database", "Email (SMTP)"}
+    on_main = {"Database", "Email (SMTP)", "SearXNG (proxy)"}
     with ThreadPoolExecutor(max_workers=len(checks)) as pool:
         futures = {name: pool.submit(_timed, name, fn) for name, fn in checks if name not in on_main}
         local = {name: _timed(name, fn) for name, fn in checks if name in on_main}

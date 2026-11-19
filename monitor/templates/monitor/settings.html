@@ -71,6 +71,38 @@ DEFAULT_FROM_EMAIL=youraccount@gmail.com</code></pre></li>
       <i class="bi bi-slack"></i> Send test message</button>
   </div></div>
 
+  <div class="card mb-3" id="proxy"><div class="card-body">
+    <h2 class="h6 text-body-secondary text-uppercase">Proxy</h2>
+    <p class="small text-body-secondary">Searches with <strong>Run through proxy</strong> ticked send their traffic to the
+      search engines through this proxy. Other searches, and Google Alerts, are not affected.</p>
+    <div class="mb-3">Status: {% include "monitor/partials/proxy_status.html" with state=proxy_state detail=proxy_detail %}</div>
+    {% include "monitor/partials/check.html" with field=form.proxy_enabled %}
+    <div class="row g-3 mt-0">
+      <div class="col-md-4">{% include "monitor/partials/field.html" with field=form.proxy_scheme %}</div>
+      <div class="col-md-5">{% include "monitor/partials/field.html" with field=form.proxy_host %}</div>
+      <div class="col-md-3">{% include "monitor/partials/field.html" with field=form.proxy_port %}</div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">{% include "monitor/partials/field.html" with field=form.proxy_username %}</div>
+      <div class="col-md-6">
+        {% include "monitor/partials/field.html" with field=form.proxy_password %}
+        {% if has_proxy_password %}
+          <div class="small mt-n2 mb-2"><span class="badge-soft badge-soft-secondary"><i class="bi bi-key"></i> A password is saved</span></div>
+          {% include "monitor/partials/check.html" with field=form.clear_proxy_password %}
+        {% endif %}
+      </div>
+    </div>
+    <div class="form-text mb-2">Username and password are optional; leave them blank if your proxy doesn't need them.
+      Use <strong>SOCKS5h</strong> for Tor or SSH tunnels so DNS lookups also go through the proxy.</div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <button type="button" class="btn btn-sm btn-outline-secondary" hx-post="{% url 'proxy-test' %}" hx-target="#proxy-test-result"
+              hx-indicator="#proxy-test-spinner"><i class="bi bi-plug"></i> Test saved proxy</button>
+      <span id="proxy-test-spinner" class="htmx-indicator small text-body-secondary"><span class="spinner-border spinner-border-sm"></span> Testing…</span>
+      <span class="small text-body-secondary">Save first, then test. This checks your public IP with and without the proxy.</span>
+    </div>
+    <div id="proxy-test-result" class="mt-2"></div>
+  </div></div>
+
   <div class="card mb-3"><div class="card-body">
     {% include "monitor/partials/field.html" with field=form.retention_days %}
   </div></div>
@@ -80,7 +112,6 @@ DEFAULT_FROM_EMAIL=youraccount@gmail.com</code></pre></li>
 <div class="card mt-4"><div class="card-body small">
   <h2 class="h6">Environment (read-only, set in <code>.env</code>)</h2>
   <ul class="mb-0">
-    <li>Proxy instance: {% if proxy_enabled %}<span class="text-success">enabled</span>{% else %}disabled{% endif %}</li>
     <li>API token: <code>POST /api/v1/auth/token/</code> with username/password, or see the admin.</li>
     <li>Admin: <a href="{% url 'admin:index' %}">/admin/</a></li>
   </ul>

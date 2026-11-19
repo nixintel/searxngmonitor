@@ -22,7 +22,7 @@ from monitor.queries import (
     LOG_LEVELS, filter_logs, filter_results, filter_runs, reschedule_if_needed, result_view,
     result_view_counts, searches_with_stats, tags_for_search,
 )
-from monitor.services import health, notify
+from monitor.services import health, notify, proxy_config
 from monitor.tasks import trigger_manual_run
 
 logger = logging.getLogger("monitor.views")
@@ -423,13 +423,39 @@ class SettingsView(LoginRequiredMixin, UpdateView):
         return AppSettings.load()
 
     def form_valid(self, form):
+        proxy_fields = {"proxy_enabled", "proxy_scheme", "proxy_host", "proxy_port", "proxy_username",
+                        "proxy_password"}
+        resp = super().form_valid(form)
+        if proxy_fields & set(form.changed_data) or form.cleaned_data.get("clear_proxy_password"):
+            if proxy_config.apply(self.object):
+                messages.info(self.request, "Proxy settings saved. The proxy search engine restarts to apply them; "
+                                            "this takes about 20 seconds.")
         messages.success(self.request, "Settings saved.")
-        return super().form_valid(form)
+        return resp
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["email_status"] = notify.email_status()
+        ctx["proxy_display"] = proxy_config.proxy_url(self.object, redact=True)
+        ctx["proxy_state"], ctx["proxy_detail"] = proxy_config.instance_status(self.object)
+        ctx["has_proxy_password"] = bool(self.object.proxy_password)
         return ctx
+
+
+@login_required
+def proxy_status(request):
+    state, detail = proxy_config.instance_status()
+    return render(request, "monitor/partials/proxy_status.html", {"state": state, "detail": detail})
+
+
+@require_POST
+@login_required
+def proxy_test(request):
+    try:
+        result = proxy_config.test_proxy()
+    except proxy_config.ProxyError as exc:
+        result = {"error": str(exc)}
+    return render(request, "monitor/partials/proxy_test.html", {"r": result})
 
 
 @require_POST

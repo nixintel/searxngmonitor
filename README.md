@@ -368,23 +368,36 @@ Click **Ops** in the top menu.
 
 ### Run searches through a proxy
 
-You can send some searches through a proxy, for example to spread traffic or appear from a different location.
-Searches without the option ticked still go direct.
+You can send some searches through a proxy, for example to hide your own IP address from the search engines,
+spread your traffic, or appear from a different location. Searches without the option ticked still go direct.
+Google Alerts aren't affected.
 
-1. Edit `.env`:
+1. Go to **Settings → Proxy**.
+2. Tick **Use a proxy…** and fill in:
+   * **Type:** `HTTP`, `HTTPS`, `SOCKS5` or `SOCKS5h`. Your proxy provider will tell you which. Use **SOCKS5h**
+     for Tor or an SSH tunnel, so DNS lookups also go through the proxy.
+   * **Host** and **Port**, e.g. `proxy.example.net` and `1080`.
+   * **Username** and **Password**, only if your proxy needs them. Any characters are fine.
+3. Click **Save**. The status shows **Applying…** for about 20 seconds while the proxy search engine restarts,
+   then **Active**.
+4. Click **Test saved proxy**. It shows your public IP address without and through the proxy. If the two are
+   different, the proxy is working. (The test asks <https://api.ipify.org> for your address; change
+   `IP_ECHO_URL` in `.env` to use a different service.)
+5. Edit a search and tick **Run through proxy**. Runs that used the proxy show 🛡 in **Ops → History**.
 
-   ```
-   COMPOSE_PROFILES=mail,proxy
-   SEARXNG_PROXY_ENABLED=true
-   PROXY_URL=socks5h://user:password@proxy.example.net:1080
-   ```
+The password is never shown again after saving. Leave the box blank to keep it, or tick **Remove the saved
+password**.
 
-   `PROXY_URL` can be `http://…`, `socks5://…` or `socks5h://…`. If the password contains `#` or `&`, replace them
-   with `%23` and `%26`.
+**Safety:** a search marked *Run through proxy* never runs without the proxy. If the proxy is turned off, still
+applying new settings, or unreachable, the run **fails** with an explanation instead of searching from your own
+IP address.
 
-2. Run `docker compose up -d`.
-3. Check that **Ops → Health → SearXNG (proxy)** is green.
-4. Edit a search and tick **Run through proxy**. Runs that used the proxy show 🛡 in **Ops → History**.
+| Test result | What to do |
+|---|---|
+| *The proxy rejected the username or password* | Re-type the password (the box is blank after saving), then Save and test again. |
+| *The proxy host … could not be found* | Check the hostname for typos. Enter just the name or IP, without `http://`. |
+| *Nothing accepted the connection* | Check the port, and that the proxy is running and allows your IP. |
+| Both IP addresses are the same | Your traffic isn't leaving through the proxy. Check the Type, Host and Port with your provider. |
 
 ### Use the API from scripts
 
@@ -414,7 +427,7 @@ Run `docker compose up -d` after any change.
 | `MIN_INTERVAL_MINUTES` | The shortest schedule allowed (default `5`). |
 | `EMAIL_*` | Email server details (see [Email](#email)). Leave as `mailpit` for the test inbox. |
 | `SLACK_WEBHOOK_URL` | A default Slack webhook (you can also set it under **Settings**). |
-| `COMPOSE_PROFILES` | Extras to run: `mail` (test inbox), `proxy`, `flower` (task dashboard on port 5555). |
+| `COMPOSE_PROFILES` | Extras to run: `mail` (test inbox) and `flower` (task dashboard on port 5555). The proxy is set up under **Settings**. |
 
 ---
 

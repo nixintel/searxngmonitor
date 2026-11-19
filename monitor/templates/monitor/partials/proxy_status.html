@@ -1,0 +1,7 @@
+<span id="proxy-status" {% if state == "applying" %}hx-get="{% url 'proxy-status' %}" hx-trigger="every 4s" hx-swap="outerHTML"{% endif %}>
+  {% if state == "applied" %}<span class="badge-soft badge-soft-success"><span class="status-dot"></span> Active</span>
+  {% elif state == "applying" %}<span class="badge-soft badge-soft-info"><span class="spinner-border"></span> Applying…</span>
+  {% elif state == "off" %}<span class="badge-soft badge-soft-secondary">Off</span>
+  {% else %}<span class="badge-soft badge-soft-danger"><span class="status-dot"></span> Not working</span>{% endif %}
+  <span class="small text-body-secondary ms-1">{{ detail }}</span>
+</span>

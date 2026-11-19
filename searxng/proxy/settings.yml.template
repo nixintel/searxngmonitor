@@ -1,11 +1,12 @@
 # SearXNG settings for the PROXY instance.
-# __PROXY_URL__ is replaced with PROXY_URL from .env by the searxng-proxy-config
-# container at startup. Supported: http://, https://, socks5://, socks5h://
-#   e.g. PROXY_URL=socks5h://user:pass@proxyhost:1080
+# Do not edit by hand: the web app renders this template into the searxng-proxy container whenever the
+# proxy settings are saved in the UI (Settings -> Proxy). It fills in two placeholders below:
+#   instance_name  a fingerprint of the proxy settings, used to check the new settings are live
+#   proxies        the proxy from Settings, or a dead address when the proxy is turned off
 use_default_settings: true
 
 general:
-  instance_name: "searxngmonitor-proxy"
+  instance_name: __INSTANCE_NAME__
 
 server:
   secret_key: "overridden-by-SEARXNG_SECRET"

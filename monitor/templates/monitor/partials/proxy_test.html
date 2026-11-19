@@ -1,0 +1,11 @@
+{% if r.error %}
+  <div class="alert alert-danger py-2 small mb-0"><i class="bi bi-x-octagon-fill"></i> {{ r.error }}</div>
+{% else %}
+  <div class="alert {% if r.different %}alert-success{% else %}alert-warning{% endif %} py-2 small mb-0">
+    <div><strong>Your IP without the proxy:</strong> <code>{{ r.direct_ip }}</code></div>
+    <div><strong>Your IP through the proxy:</strong> <code>{{ r.proxy_ip }}</code></div>
+    {% if r.different %}<div class="mt-1"><i class="bi bi-check-circle-fill"></i> The proxy works and hides your IP address.</div>
+    {% else %}<div class="mt-1"><i class="bi bi-exclamation-triangle-fill"></i> Both addresses are the same, so the proxy isn't changing your IP.</div>{% endif %}
+    {% if r.instance != "applied" %}<div class="mt-1">Proxy search engine: {{ r.detail }}</div>{% endif %}
+  </div>
+{% endif %}

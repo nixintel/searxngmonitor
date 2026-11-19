@@ -29,6 +29,20 @@ class AppSettings(models.Model):
         default=30, help_text="Logs and run history older than this are pruned nightly."
     )
 
+    # Proxy used by searches that have "Run through proxy" ticked (applied to the searxng-proxy instance).
+    class ProxyScheme(models.TextChoices):
+        HTTP = "http", "HTTP"
+        HTTPS = "https", "HTTPS"
+        SOCKS5 = "socks5", "SOCKS5 (local DNS)"
+        SOCKS5H = "socks5h", "SOCKS5h (DNS through the proxy)"
+
+    proxy_enabled = models.BooleanField(default=False, help_text="Allow searches to run through this proxy.")
+    proxy_scheme = models.CharField(max_length=10, choices=ProxyScheme.choices, default=ProxyScheme.HTTP)
+    proxy_host = models.CharField(max_length=255, blank=True, help_text="Hostname or IP address, without http://.")
+    proxy_port = models.PositiveIntegerField(null=True, blank=True)
+    proxy_username = models.CharField(max_length=255, blank=True)
+    proxy_password = models.CharField(max_length=255, blank=True)
+
     class Meta:
         verbose_name = "app settings"
         verbose_name_plural = "app settings"

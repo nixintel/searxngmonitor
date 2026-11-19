@@ -428,3 +428,7 @@ a.badge-soft:hover { filter: brightness(1.08); }
 /* code blocks: no per-line inline-code tint */
 pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: .8rem; }
 pre { border: 1px solid var(--app-border); }
+
+/* htmx loading indicators */
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline; }

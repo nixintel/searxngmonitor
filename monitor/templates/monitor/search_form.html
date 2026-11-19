@@ -81,7 +81,7 @@
     {% include "monitor/partials/check.html" with field=form.enabled %}
     <div data-source="searxng">
       {% include "monitor/partials/check.html" with field=form.use_proxy %}
-      {% if not proxy_enabled %}<div class="form-text text-warning mb-2"><i class="bi bi-exclamation-triangle"></i> The proxy instance is currently disabled; searches set to use it will fail.</div>{% endif %}
+      {% if not proxy_enabled %}<div class="form-text text-warning mb-2"><i class="bi bi-exclamation-triangle"></i> The proxy is turned off. <a href="{% url 'settings' %}#proxy">Set it up in Settings</a>; until then, searches set to use it will fail rather than run unproxied.</div>{% endif %}
     </div>
     {% include "monitor/partials/check.html" with field=form.baseline_first_run %}
   </div></div>

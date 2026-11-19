@@ -85,11 +85,24 @@ class SearchForm(forms.ModelForm):
 
 class AppSettingsForm(forms.ModelForm):
     default_engines = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple)
+    proxy_password = forms.CharField(
+        required=False, label="Password", strip=False,
+        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"}),
+        help_text="Leave blank to keep the saved password.",
+    )
+    clear_proxy_password = forms.BooleanField(required=False, label="Remove the saved password")
 
     class Meta:
         model = AppSettings
-        fields = ["default_engines", "notify_address", "slack_webhook_url", "retention_days"]
-        labels = {"notify_address": "Default email address", "slack_webhook_url": "Default Slack webhook URL"}
+        fields = [
+            "default_engines", "notify_address", "slack_webhook_url", "retention_days",
+            "proxy_enabled", "proxy_scheme", "proxy_host", "proxy_port", "proxy_username", "proxy_password",
+        ]
+        labels = {
+            "notify_address": "Default email address", "slack_webhook_url": "Default Slack webhook URL",
+            "proxy_enabled": "Use a proxy for searches marked \"Run through proxy\"",
+            "proxy_scheme": "Type", "proxy_host": "Host", "proxy_port": "Port", "proxy_username": "Username",
+        }
         widgets = {
             "slack_webhook_url": forms.URLInput(attrs={"placeholder": "https://hooks.slack.com/services/…"}),
         }
@@ -97,4 +110,31 @@ class AppSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["default_engines"].choices = engine_choices(self.instance.default_engines)
+        self.fields["proxy_username"].widget.attrs["autocomplete"] = "off"
+        self.fields["proxy_host"].widget.attrs["placeholder"] = "proxy.example.net"
         _style(self.fields)
+
+    def clean_proxy_host(self):
+        host = (self.cleaned_data.get("proxy_host") or "").strip()
+        if "://" in host or "/" in host or "@" in host or " " in host:
+            raise forms.ValidationError("Enter just the hostname or IP address, e.g. proxy.example.net")
+        return host
+
+    def clean_proxy_password(self):
+        # Keep the saved password unless a new one is typed or "remove" is ticked.
+        new = self.cleaned_data.get("proxy_password") or ""
+        if self.data.get("clear_proxy_password"):
+            return ""
+        return new or self.instance.proxy_password
+
+    def clean(self):
+        data = super().clean()
+        if data.get("proxy_enabled"):
+            if not data.get("proxy_host"):
+                self.add_error("proxy_host", "Enter the proxy host to turn the proxy on.")
+            port = data.get("proxy_port")
+            if not port or not 1 <= port <= 65535:
+                self.add_error("proxy_port", "Enter a port between 1 and 65535.")
+        if data.get("proxy_password") and not data.get("proxy_username"):
+            self.add_error("proxy_username", "A password needs a username.")
+        return data

@@ -1,7 +1,6 @@
 # SearXNG Monitor stack.
 #   docker compose up -d --build
 # Optional profiles (set COMPOSE_PROFILES in .env, comma separated):
-#   proxy  - second SearXNG instance that sends all engine traffic via PROXY_URL
 #   flower - Celery Flower dashboard on :5555
 #   mail   - Mailpit SMTP sink + web UI on :8025 (for testing email alerts)
 
@@ -22,6 +21,15 @@ services:
     <<: *app
     build: .
     pull_policy: build
+    volumes:
+      - searxng-proxy-config:/app/run/searxng-proxy   # web writes the proxy instance's settings here
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      searxng-proxy-config:
+        condition: service_completed_successfully
     ports:
       - "${WEB_PORT:-8000}:8000"
     healthcheck:
@@ -88,12 +96,10 @@ services:
     volumes:
       - ./searxng/direct:/etc/searxng:rw
 
-  # Renders the proxy instance's settings.yml from the template + PROXY_URL.
+  # Prepares the shared volume that holds the proxy instance's settings.yml. The web app writes the file
+  # from Settings -> Proxy; until then a safe default (proxy off) is used.
   searxng-proxy-config:
     image: alpine:3.20
-    profiles: ["proxy"]
-    environment:
-      PROXY_URL: ${PROXY_URL:-}
     volumes:
       - ./searxng/proxy/settings.yml.template:/template/settings.yml.template:ro
       - searxng-proxy-config:/etc/searxng
@@ -101,22 +107,42 @@ services:
       - sh
       - -c
       - |
-        [ -n "$$PROXY_URL" ] || { echo "PROXY_URL is empty - set it in .env"; exit 1; }
-        sed "s#__PROXY_URL__#$$PROXY_URL#g" /template/settings.yml.template > /etc/searxng/settings.yml
-        chmod 644 /etc/searxng/settings.yml
-        echo "searxng-proxy settings rendered"
+        if [ ! -f /etc/searxng/settings.yml ]; then
+          sed -e 's#__INSTANCE_NAME__#"searxngmonitor-proxy-unset"#' -e 's#__PROXY_URL__#"http://127.0.0.1:9"#' \
+            /template/settings.yml.template > /etc/searxng/settings.yml
+        fi
+        chown -R 1000:1000 /etc/searxng
+        chmod 0777 /etc/searxng
+        chmod 0644 /etc/searxng/settings.yml
+        echo "searxng-proxy config volume ready"
 
-  # SearXNG instance whose outgoing engine requests go through PROXY_URL.
+  # SearXNG instance for searches marked "Run through proxy". Its proxy is set in the UI (Settings -> Proxy).
+  # SearXNG only reads settings at start-up, so a small wrapper restarts it when the web app writes new settings.
   searxng-proxy:
     image: searxng/searxng:latest
-    profiles: ["proxy"]
     restart: unless-stopped
     environment:
       SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
       # Optional; Wikipedia/Wikidata/OSM engines refuse to load without it.
       SEARXNG_CONTACT_URL: ${SEARXNG_CONTACT_URL:-}
+      FORCE_OWNERSHIP: "false"   # keep the volume writable by the web app
     volumes:
       - searxng-proxy-config:/etc/searxng
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        /usr/local/searxng/entrypoint.sh &
+        pid=$$!
+        start=$$(md5sum /etc/searxng/settings.yml)
+        while kill -0 $$pid 2>/dev/null; do
+          sleep 3
+          if [ "$$(md5sum /etc/searxng/settings.yml 2>/dev/null)" != "$$start" ]; then
+            echo "Proxy settings changed: restarting to apply them"
+            kill $$pid; sleep 2; exit 0
+          fi
+        done
+        exit 1
     depends_on:
       searxng-proxy-config:
         condition: service_completed_successfully
