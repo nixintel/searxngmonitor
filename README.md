@@ -371,3 +371,11 @@ Run `docker compose up -d` after any change.
 * **Run the test suite:** `docker compose exec web python manage.py test monitor`.
 * **More workers for heavy use:** `docker compose up -d --scale worker=3`.
 * **Admin interface:** <http://localhost:8000/admin/> gives raw access to all data.
+
+---
+
+## License
+
+SearXNG Monitor is released under the [MIT License](LICENSE). It runs [SearXNG](https://github.com/searxng/searxng)
+(AGPL-3.0) as a separate, unmodified container. The favicon uses the binoculars icon from
+[Bootstrap Icons](https://icons.getbootstrap.com/) (MIT).
