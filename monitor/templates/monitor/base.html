@@ -39,6 +39,11 @@
       <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode" title="Toggle dark mode">
         <i class="bi bi-moon-stars theme-icon-light"></i><i class="bi bi-sun theme-icon-dark"></i>
       </button>
+      {% if user.is_staff %}
+      <a class="theme-toggle" href="{% url 'admin:index' %}" title="Admin panel" aria-label="Admin panel">
+        <i class="bi bi-person-gear"></i>
+      </a>
+      {% endif %}
       <form method="post" action="{% url 'logout' %}" class="d-none d-md-flex">{% csrf_token %}
         <button class="btn btn-sm btn-outline-secondary" title="Log out {{ user.username }}"><i class="bi bi-box-arrow-right"></i> Log out</button>
       </form>

@@ -304,3 +304,16 @@ class ApiTests(APITestCase):
 
     def test_schema(self):
         self.assertEqual(self.client.get("/api/schema/").status_code, 200)
+
+
+class AdminShortcutTests(TestCase):
+    def test_only_staff_see_admin_link(self):
+        admin = get_user_model().objects.create_superuser("boss", password="pw-123456")
+        self.client.force_login(admin)
+        self.assertContains(self.client.get(reverse("dashboard")), 'href="/admin/" title="Admin panel"')
+
+        normal = get_user_model().objects.create_user("student", password="pw-123456")
+        self.client.force_login(normal)
+        resp = self.client.get(reverse("dashboard"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "Admin panel")
