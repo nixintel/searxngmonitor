@@ -14,13 +14,14 @@
     <tr class="{% if not s.enabled %}row-paused{% endif %}">
       <td class="text-nowrap">
         <a href="{% url 'search-detail' s.pk %}" class="search-name">{{ s.name }}</a>
+        {% if s.is_google_alert %}<span class="badge-soft badge-soft-info ms-1" title="Google Alert (RSS)"><i class="bi bi-google"></i> Alert</span>{% endif %}
         <span class="ms-1 text-body-secondary small">
           {% if s.use_proxy %}<i class="bi bi-shield-lock" title="Runs via proxy"></i>{% endif %}
           {% if s.notify_email %}<i class="bi bi-envelope" title="Email alerts on"></i>{% endif %}
           {% if s.notify_slack %}<i class="bi bi-slack" title="Slack alerts on"></i>{% endif %}
         </span>
       </td>
-      <td><span class="query-text">{{ s.query|truncatechars:60 }}</span></td>
+      <td><span class="query-text">{{ s.query|default:"—"|truncatechars:60 }}</span></td>
       <td class="small text-nowrap">{% if s.enabled %}{{ s.interval_display }}{% else %}<span class="badge-soft badge-soft-secondary"><i class="bi bi-pause-fill"></i> paused</span>{% endif %}</td>
       <td class="small text-nowrap">
         {% if s.last_run_at %}<span title="{{ s.last_run_at }}">{{ s.last_run_at|naturaltime }}</span>{% else %}<span class="text-body-secondary">—</span>{% endif %}

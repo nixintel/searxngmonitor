@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from monitor.models import AppSettings, LogEntry, SavedSearch, SearchRun
 from monitor.services import notify
+from monitor.services.feeds import fetch_google_alert
 from monitor.services.health import BEAT_HEARTBEAT_KEY
 from monitor.services.searxng import SearxngError, fetch_results, store_results
 
@@ -88,7 +89,8 @@ def run_search(self, run_id):
         is_first = not search.runs.filter(status=SearchRun.Status.SUCCESS).exists()
         mark_new = not (is_first and search.baseline_first_run)
 
-        results, unresponsive = fetch_results(search)
+        fetch = fetch_google_alert if search.is_google_alert else fetch_results
+        results, unresponsive = fetch(search)
         if not results and unresponsive:
             raise SearxngError(
                 "No results: all engines failed - "

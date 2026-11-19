@@ -188,6 +188,36 @@ seconds. It doesn't change the regular schedule.
 
 ---
 
+## Monitor Google with Google Alerts
+
+Google blocks automated searches from SearXNG, but it offers **Google Alerts** instead. A Google Alert can publish
+its matches as an RSS feed, and SearXNG Monitor can follow that feed. Its results appear in the same dashboard as
+your other searches, with the same new badges, tags, deletion and email/Slack alerts.
+
+**1. Create the alert in Google**
+
+1. Go to <https://www.google.com/alerts> (sign in with a Google account).
+2. Type what you want to monitor, e.g. `"Acme Corp"`.
+3. Click **Show options**, set **Deliver to** to **RSS feed**, and click **Create Alert**.
+4. Click the **RSS icon** next to your new alert. Copy the address from your browser's address bar. It looks like
+   `https://www.google.com/alerts/feeds/12345678901234567890/09876543210987654321`.
+
+**2. Add it to SearXNG Monitor**
+
+1. On the dashboard, click **Add Google Alert**, or choose **Google Alert (RSS)** at the top of the
+   **New search** form.
+2. Give it a **Name** and paste the **feed URL**.
+3. Choose how often to check it. Google decides when the feed updates (as things happen, or once a day), so
+   every **30–60 minutes** is plenty.
+4. Click **Save**. The first check runs within a minute.
+
+You don't type the search terms into SearXNG Monitor; they're read from the feed and shown in the Query column.
+A new alert often has **no results at first**. It fills up as Google finds new pages, so a successful check with
+0 results is normal.
+
+Google Alerts searches are marked with a **Google** badge on the dashboard. The *Run through proxy* option
+doesn't apply to them, because the feed is fetched directly from Google.
+
 ## Getting alerts
 
 ### Email
@@ -269,7 +299,8 @@ Some engines block automated searches. From most networks we've seen:
 
 * **Work well:** bing, yahoo, mwmbl, yandex.
 * **Partly working:** brave. Many of its results currently arrive as broken links, which the app skips.
-* **Often blocked:** google, duckduckgo, qwant. They show up as ⚠️ *unresponsive* in the run history.
+* **Often blocked:** google, duckduckgo, qwant. They show up as ⚠️ *unresponsive* in the run history. To monitor
+  Google, use a [Google Alert](#monitor-google-with-google-alerts) instead.
 
 Results vary by network, so try a few engines and keep the ones that return results for you. Change the engines
 ticked for new searches under **Settings**.

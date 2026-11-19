@@ -16,7 +16,7 @@ class SavedSearchSerializer(serializers.ModelSerializer):
     class Meta:
         model = SavedSearch
         fields = [
-            "id", "name", "query", "engines", "categories", "language", "time_range", "max_pages",
+            "id", "name", "source", "query", "feed_url", "engines", "categories", "language", "time_range", "max_pages",
             "interval_value", "interval_unit", "use_proxy", "notify_email", "notify_address",
             "notify_slack", "slack_webhook_url", "slack_webhook_set",
             "baseline_first_run", "enabled", "last_run_at", "next_run_at", "created_at", "updated_at",

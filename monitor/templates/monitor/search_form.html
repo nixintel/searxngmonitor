@@ -18,11 +18,40 @@
 
   <div class="card mb-3"><div class="card-body">
     <h2 class="h6 text-body-secondary text-uppercase">What to monitor</h2>
+    <div class="mb-3">
+      <label class="form-label d-block">Source</label>
+      <div class="source-toggle" role="radiogroup" aria-label="Source">
+        {% for radio in form.source %}
+          {{ radio.tag }}
+          <label class="source-option" for="{{ radio.id_for_label }}">
+            {% if radio.data.value == "google_alert" %}<i class="bi bi-google"></i>{% else %}<i class="bi bi-search"></i>{% endif %}
+            <span><strong>{{ radio.choice_label }}</strong>
+              <small>{% if radio.data.value == "google_alert" %}Follow a Google Alert's RSS feed{% else %}Search engines via SearXNG{% endif %}</small></span>
+          </label>
+        {% endfor %}
+      </div>
+      {% for e in form.source.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
     {% include "monitor/partials/field.html" with field=form.name %}
-    {% include "monitor/partials/field.html" with field=form.query %}
+    <div data-source="searxng">
+      {% include "monitor/partials/field.html" with field=form.query %}
+    </div>
+    <div data-source="google_alert">
+      {% include "monitor/partials/field.html" with field=form.feed_url %}
+      <div class="alert alert-info small mb-0">
+        <strong><i class="bi bi-info-circle"></i> How to get the feed URL</strong>
+        <ol class="mb-1 mt-1 ps-3">
+          <li>Go to <a href="https://www.google.com/alerts" target="_blank" rel="noopener">google.com/alerts</a> and type what you want to monitor.</li>
+          <li>Click <strong>Show options</strong> and set <strong>Deliver to</strong> → <strong>RSS feed</strong>, then <strong>Create Alert</strong>.</li>
+          <li>Click the <strong>RSS icon</strong> next to the alert and copy the address from your browser's address bar.</li>
+        </ol>
+        The alert's search terms are read from the feed automatically. Google decides when the feed updates,
+        so checking every 30–60 minutes is plenty.
+      </div>
+    </div>
   </div></div>
 
-  <div class="card mb-3"><div class="card-body">
+  <div class="card mb-3" data-source="searxng"><div class="card-body">
     <h2 class="h6 text-body-secondary text-uppercase">Engines</h2>
     <input type="search" class="form-control form-control-sm mb-2" placeholder="Filter engines…" id="engine-filter">
     <div class="engine-box border rounded p-2 mb-1" id="engine-box">
@@ -50,8 +79,10 @@
       <div class="col-6">{% include "monitor/partials/field.html" with field=form.interval_unit %}</div>
     </div>
     {% include "monitor/partials/check.html" with field=form.enabled %}
-    {% include "monitor/partials/check.html" with field=form.use_proxy %}
-    {% if not proxy_enabled %}<div class="form-text text-warning mb-2"><i class="bi bi-exclamation-triangle"></i> The proxy instance is currently disabled; searches set to use it will fail.</div>{% endif %}
+    <div data-source="searxng">
+      {% include "monitor/partials/check.html" with field=form.use_proxy %}
+      {% if not proxy_enabled %}<div class="form-text text-warning mb-2"><i class="bi bi-exclamation-triangle"></i> The proxy instance is currently disabled; searches set to use it will fail.</div>{% endif %}
+    </div>
     {% include "monitor/partials/check.html" with field=form.baseline_first_run %}
   </div></div>
 
@@ -67,6 +98,20 @@
 {% endblock %}
 {% block scripts %}
 <script>
+  // Show only the fields that apply to the selected source.
+  (function () {
+    const radios = document.querySelectorAll('input[name="source"]');
+    function apply() {
+      const checked = document.querySelector('input[name="source"]:checked');
+      const source = checked ? checked.value : 'searxng';
+      document.querySelectorAll('[data-source]').forEach(el => {
+        el.style.display = el.dataset.source === source ? '' : 'none';
+      });
+    }
+    radios.forEach(r => r.addEventListener('change', apply));
+    apply();
+  })();
+
   document.getElementById('engine-filter').addEventListener('input', function () {
     const q = this.value.toLowerCase();
     document.querySelectorAll('#engine-box .form-check').forEach(el => {

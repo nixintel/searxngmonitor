@@ -1,9 +1,13 @@
+import re
 from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+
+
+GOOGLE_ALERT_FEED_RE = re.compile(r"^https://www\.google\.com/alerts/feeds/\d+/\d+/?$")
 
 
 def default_engines():
@@ -43,6 +47,10 @@ class AppSettings(models.Model):
 
 
 class SavedSearch(models.Model):
+    class Source(models.TextChoices):
+        SEARXNG = "searxng", "SearXNG search"
+        GOOGLE_ALERT = "google_alert", "Google Alert (RSS)"
+
     class IntervalUnit(models.TextChoices):
         MINUTES = "minutes", "Minutes"
         HOURS = "hours", "Hours"
@@ -55,7 +63,15 @@ class SavedSearch(models.Model):
         YEAR = "year", "Past year"
 
     name = models.CharField(max_length=200)
-    query = models.CharField(max_length=500, help_text="Keyword or phrase. SearXNG syntax is allowed, e.g. \"exact phrase\".")
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.SEARXNG)
+    query = models.CharField(
+        max_length=500, blank=True,
+        help_text="Keyword or phrase. SearXNG syntax is allowed, e.g. \"exact phrase\".",
+    )
+    feed_url = models.URLField(
+        max_length=500, blank=True,
+        help_text="The alert's RSS feed URL, e.g. https://www.google.com/alerts/feeds/123…/456…",
+    )
     engines = models.JSONField(default=default_engines, blank=True)
     categories = models.CharField(
         max_length=200, blank=True, default="general",
@@ -91,6 +107,10 @@ class SavedSearch(models.Model):
         return self.name
 
     @property
+    def is_google_alert(self):
+        return self.source == self.Source.GOOGLE_ALERT
+
+    @property
     def interval(self) -> timedelta:
         if self.interval_unit == self.IntervalUnit.HOURS:
             return timedelta(hours=self.interval_value)
@@ -114,8 +134,20 @@ class SavedSearch(models.Model):
             )
         if not 1 <= (self.max_pages or 0) <= settings.MAX_PAGES_PER_SEARCH:
             raise ValidationError({"max_pages": f"Must be between 1 and {settings.MAX_PAGES_PER_SEARCH}."})
-        if not self.engines and not self.categories:
-            raise ValidationError("Select at least one engine or a category.")
+        if self.is_google_alert:
+            self.feed_url = (self.feed_url or "").strip()
+            if not self.feed_url:
+                raise ValidationError({"feed_url": "Paste the Google Alert's RSS feed URL."})
+            if not GOOGLE_ALERT_FEED_RE.match(self.feed_url):
+                raise ValidationError({"feed_url": (
+                    "This doesn't look like a Google Alerts feed. It should start with "
+                    "https://www.google.com/alerts/feeds/ followed by two long numbers."
+                )})
+        else:
+            if not (self.query or "").strip():
+                raise ValidationError({"query": "Enter a keyword or phrase to search for."})
+            if not self.engines and not self.categories:
+                raise ValidationError("Select at least one engine or a category.")
 
     def save(self, *args, **kwargs):
         if self.enabled and self.next_run_at is None:

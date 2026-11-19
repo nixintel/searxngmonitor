@@ -12,6 +12,7 @@
       <button class="btn btn-outline-secondary"><i class="bi bi-check2-all"></i> Mark all seen</button>
     </form>
     {% endif %}
+    <a class="btn btn-outline-primary" href="{% url 'search-create' %}?source=google_alert"><i class="bi bi-google"></i> Add Google Alert</a>
     <a class="btn btn-primary" href="{% url 'search-create' %}"><i class="bi bi-plus-lg"></i> New search</a>
   </div>
 </div>

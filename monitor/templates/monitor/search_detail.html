@@ -8,7 +8,8 @@
       {% if not search.enabled %}<span class="badge-soft badge-soft-secondary align-middle">paused</span>{% endif %}
       {% if search.new_count %}<span class="badge-soft badge-soft-warning align-middle"><i class="bi bi-bell-fill"></i> {{ search.new_count }} new</span>{% endif %}
     </h1>
-    <span class="query-text">{{ search.query }}</span>
+    {% if search.is_google_alert %}<span class="badge-soft badge-soft-info me-1"><i class="bi bi-google"></i> Google Alert</span>{% endif %}
+    <span class="query-text">{{ search.query|default:"(search terms appear after the first check)" }}</span>
   </div>
   <div class="d-flex flex-wrap gap-2">
     <button class="btn btn-primary" hx-post="{% url 'search-run' search.pk %}" hx-swap="none"><i class="bi bi-play-fill"></i> Run now</button>
@@ -34,8 +35,13 @@
     {% if search.enabled and search.next_run_at %}{{ search.next_run_at|naturaltime }}<div class="small text-body-secondary">{{ search.next_run_at }}</div>{% else %}—{% endif %}
   </div></div></div>
   <div class="col-md-3"><div class="card h-100"><div class="card-body">
-    <div class="small text-body-secondary">Engines</div>
-    <span class="small">{{ search.engines|join:", "|default:search.categories }}</span>
+    {% if search.is_google_alert %}
+      <div class="small text-body-secondary">Source</div>
+      <span class="small">Google Alerts RSS · <a href="{{ search.feed_url }}" target="_blank" rel="noopener noreferrer">feed <i class="bi bi-box-arrow-up-right"></i></a></span>
+    {% else %}
+      <div class="small text-body-secondary">Engines</div>
+      <span class="small">{{ search.engines|join:", "|default:search.categories }}</span>
+    {% endif %}
     {% if search.use_proxy %}<div class="mt-1"><span class="badge-soft badge-soft-info"><i class="bi bi-shield-lock"></i> via proxy</span></div>{% endif %}
     {% if search.notify_email %}<div class="mt-1"><span class="badge-soft badge-soft-secondary"><i class="bi bi-envelope"></i> {{ search.notify_address|default:"default address" }}</span></div>{% endif %}
     {% if search.notify_slack %}<div class="mt-1"><span class="badge-soft badge-soft-secondary"><i class="bi bi-slack"></i> Slack{% if not search.slack_webhook_url %} (default webhook){% endif %}</span></div>{% endif %}

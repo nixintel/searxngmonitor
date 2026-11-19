@@ -15,6 +15,8 @@ def engine_choices(selected=()):
 
 def _style(fields):
     for field in fields.values():
+        if isinstance(field.widget, forms.RadioSelect):
+            continue
         if isinstance(field.widget, forms.CheckboxInput):
             field.widget.attrs.setdefault("class", "form-check-input")
         elif isinstance(field.widget, forms.Select):
@@ -35,7 +37,7 @@ class SearchForm(forms.ModelForm):
     class Meta:
         model = SavedSearch
         fields = [
-            "name", "query", "engines", "categories", "language", "time_range", "max_pages",
+            "name", "source", "query", "feed_url", "engines", "categories", "language", "time_range", "max_pages",
             "interval_value", "interval_unit", "use_proxy", "notify_email", "notify_address",
             "notify_slack", "slack_webhook_url", "baseline_first_run", "enabled",
         ]
@@ -51,18 +53,29 @@ class SearchForm(forms.ModelForm):
         }
         widgets = {
             "slack_webhook_url": forms.URLInput(attrs={"placeholder": "https://hooks.slack.com/services/…"}),
+            "source": forms.RadioSelect,
+            "feed_url": forms.URLInput(attrs={"placeholder": "https://www.google.com/alerts/feeds/…/…"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["source"].widget.attrs["class"] = "source-radio"
+        self.fields["source"].required = False  # missing = SearXNG (older forms/clients)
+        self.fields["feed_url"].label = "Google Alert RSS feed URL"
         current = self.instance.engines if self.instance.pk else AppSettings.load().default_engines
         self.fields["engines"].choices = engine_choices(current)
         if not self.instance.pk:
             self.initial["engines"] = current
         _style(self.fields)
 
+    def clean_source(self):
+        return self.cleaned_data.get("source") or SavedSearch.Source.SEARXNG
+
     def clean(self):
         data = super().clean()
+        if data.get("source") == SavedSearch.Source.GOOGLE_ALERT:
+            data["use_proxy"] = False  # the proxy only applies to SearXNG
+            self.instance.use_proxy = False
         if data.get("notify_email") and not (data.get("notify_address") or notify.recipient_for(None)):
             self.add_error("notify_address", "Enter an address, or set a default address in Settings.")
         if data.get("notify_slack") and not (data.get("slack_webhook_url") or notify.slack_webhook_for(None)):

@@ -93,10 +93,17 @@ class SearchCreateView(LoginRequiredMixin, NotificationContextMixin, CreateView)
     form_class = SearchForm
     template_name = "monitor/search_form.html"
 
+    def get_initial(self):
+        initial = super().get_initial()
+        if self.request.GET.get("source") == SavedSearch.Source.GOOGLE_ALERT:
+            initial["source"] = SavedSearch.Source.GOOGLE_ALERT
+        return initial
+
     def form_valid(self, form):
         resp = super().form_valid(form)
         logger.info("Search '%s' created", self.object.name, extra={"search_id": self.object.id})
-        messages.success(self.request, f"Search '{self.object.name}' created. It will run within a minute.")
+        kind = "Google Alert" if self.object.is_google_alert else "Search"
+        messages.success(self.request, f"{kind} '{self.object.name}' created. It will be checked within a minute.")
         return resp
 
     def get_success_url(self):
