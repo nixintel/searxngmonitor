@@ -10,6 +10,13 @@
         emails for this search will not be delivered until this is fixed.
         <span class="text-body-secondary">({{ email_status.message }})</span>
       </div>
+    {% elif email_status.mode == "test" %}
+      <div class="alert alert-warning py-2 small mb-2">
+        <strong><i class="bi bi-inbox"></i> Test inbox only.</strong>
+        Emails are <strong>not delivered to real mailboxes</strong>; they're caught by the Mailpit test inbox, which you
+        can read at <a href="{{ email_status.inbox_url }}" target="_blank" rel="noopener">{{ email_status.inbox_url }}</a>.
+        Any address works here. To receive real email, <a href="{% url 'settings' %}#email">set up an email server in Settings</a>.
+      </div>
     {% else %}
       <div class="form-text mt-0 mb-2"><i class="bi bi-check-circle text-success"></i> {{ email_status.message }}
         {% if email_status.default_recipient %}· default recipient {{ email_status.default_recipient }}{% else %}· no default recipient set (<a href="{% url 'settings' %}">Settings</a>){% endif %}

@@ -175,6 +175,8 @@ EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 EMAIL_TIMEOUT = 20
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "searxng-monitor@localhost")
 NOTIFY_EMAIL_TO = env("NOTIFY_EMAIL_TO", "")
+# Where people open the Mailpit test inbox in their browser (only used for links in the UI).
+MAILPIT_URL = env("MAILPIT_URL", "http://localhost:8025").rstrip("/")
 SLACK_WEBHOOK_URL = env("SLACK_WEBHOOK_URL", "")
 SLACK_ALLOW_HTTP = env_bool("SLACK_ALLOW_HTTP", False)  # only for local testing with a fake receiver
 

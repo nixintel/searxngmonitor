@@ -424,3 +424,7 @@ a.badge-soft:hover { filter: brightness(1.08); }
 }
 .source-toggle input:checked + .source-option > .bi { color: var(--app-accent); }
 .source-toggle input:focus-visible + .source-option { outline: 2px solid var(--app-accent); outline-offset: 2px; }
+
+/* code blocks: no per-line inline-code tint */
+pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: .8rem; }
+pre { border: 1px solid var(--app-border); }

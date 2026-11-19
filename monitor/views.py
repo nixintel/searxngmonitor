@@ -1,4 +1,6 @@
 import json
+
+from django.conf import settings
 from datetime import timedelta
 import logging
 
@@ -66,6 +68,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             status = notify.email_status()
             if not status["ok"]:
                 ctx["email_problem"] = status["message"]
+            elif status["mode"] == "test":
+                ctx["email_test_mode"] = status
         return ctx
 
 
@@ -157,6 +161,7 @@ class SearchDetailView(LoginRequiredMixin, DetailView):
         ctx["search_tags"] = tags_for_search(self.object)
         ctx["all_tags"] = Tag.objects.all()
         ctx["active_tag"] = params.get("tag", "")
+        ctx["email_test_mode"] = self.object.notify_email and notify.is_test_inbox()
         ctx["result_tabs"] = [
             ("all", "All", "bi-list-ul"), ("new", "New", "bi-bell"),
             ("tagged", "Tagged", "bi-tags"), ("deleted", "Deleted", "bi-trash"),
@@ -433,7 +438,11 @@ def test_notification(request, channel):
     try:
         if channel == "email":
             to = notify.send_test_email(request.POST.get("to") or None)
-            msg, level = f"Test email sent to {to}.", "success"
+            if notify.is_test_inbox():
+                msg, level = (f"Test email caught by the Mailpit test inbox (not delivered to {to}). "
+                              f"Open {settings.MAILPIT_URL} to view it."), "info"
+            else:
+                msg, level = f"Test email sent to {to}. Check that inbox (and its spam folder).", "success"
         elif channel == "slack":
             notify.send_test_slack(request.POST.get("webhook") or None)
             msg, level = "Test message posted to Slack.", "success"

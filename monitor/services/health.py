@@ -85,6 +85,8 @@ def check_email():
     status = email_status()
     if not status["configured"]:
         return None, status["message"]
+    if status["mode"] == "test":
+        return True, "Test inbox (Mailpit): emails are not delivered to real mailboxes"
     return status["ok"], status["message"]
 
 

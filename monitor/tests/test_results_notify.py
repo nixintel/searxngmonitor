@@ -222,3 +222,51 @@ class ResultApiTests(APITestCase):
         self.assertNotIn("slack_webhook_url", resp.data)
         self.assertTrue(resp.data["slack_webhook_set"])
         self.assertNotIn("SECRET", str(self.client.get("/api/v1/searches/").data))
+
+
+@mock.patch("monitor.forms.available_engines", return_value=FAKE_ENGINES)
+class EmailTestModeTests(TestCase):
+    """The default Mailpit setup must be clearly labelled as a test inbox, not real email."""
+
+    def setUp(self):
+        cache.clear()
+        self.client.force_login(get_user_model().objects.create_user("u", password="pw-123456"))
+
+    @override_settings(EMAIL_BACKEND=SMTP, EMAIL_HOST="mailpit", EMAIL_PORT=1025)
+    def test_mailpit_is_test_mode(self, _):
+        with mock.patch("monitor.services.notify.socket.create_connection"):
+            status = notify.email_status()
+            self.assertEqual((status["mode"], status["ok"], status["real"]), ("test", True, False))
+            form = self.client.get(reverse("search-create"))
+            self.assertContains(form, "Test inbox only")
+            self.assertContains(form, "not delivered to real mailboxes")
+            settings_page = self.client.get(reverse("settings"))
+            self.assertContains(settings_page, "Test inbox mode")
+            self.assertContains(settings_page, "How to send real email")
+            # Dashboard banner only once a search actually has email alerts on.
+            self.assertNotContains(self.client.get(reverse("dashboard")), "Email alerts are in test mode")
+            s = SavedSearch.objects.create(name="E", query="q", notify_email=True, notify_address="a@example.com")
+            self.assertContains(self.client.get(reverse("dashboard")), "Email alerts are in test mode")
+            self.assertContains(self.client.get(reverse("search-detail", args=[s.pk])), "(test inbox)")
+
+    @override_settings(EMAIL_BACKEND=SMTP, EMAIL_HOST="mailpit", EMAIL_PORT=1025)
+    def test_test_email_toast_says_not_delivered(self, _):
+        with mock.patch("monitor.services.notify.send_mail"):
+            resp = self.client.post(reverse("test-notification", args=["email"]), {"to": "me@example.com"})
+        self.assertIn("not delivered to me@example.com", resp["HX-Trigger"])
+
+    @override_settings(EMAIL_BACKEND=SMTP, EMAIL_HOST="smtp.gmail.com", EMAIL_PORT=587)
+    def test_real_smtp_mode(self, _):
+        with mock.patch("monitor.services.notify.socket.create_connection"):
+            status = notify.email_status()
+            self.assertEqual((status["mode"], status["real"]), ("real", True))
+            self.assertIn("smtp.gmail.com:587", status["message"])
+            self.assertNotContains(self.client.get(reverse("search-create")), "Test inbox only")
+            self.assertContains(self.client.get(reverse("settings")), "Real email")
+
+    @override_settings(EMAIL_BACKEND=SMTP, EMAIL_HOST="mailpit", EMAIL_PORT=1025)
+    def test_mailpit_not_running(self, _):
+        with mock.patch("monitor.services.notify.socket.create_connection", side_effect=OSError("nope")):
+            status = notify.email_status()
+        self.assertEqual(status["mode"], "unreachable")
+        self.assertIn("COMPOSE_PROFILES", status["message"])

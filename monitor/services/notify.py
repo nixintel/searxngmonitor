@@ -36,17 +36,35 @@ def recipient_for(search=None):
     return own or _app_settings().notify_address or settings.NOTIFY_EMAIL_TO
 
 
+TEST_INBOX_HOSTS = {"mailpit"}
+
+
+def is_test_inbox():
+    """True when email goes to the bundled Mailpit test inbox (nothing reaches real mailboxes)."""
+    return settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") and \
+        (settings.EMAIL_HOST or "").strip().lower() in TEST_INBOX_HOSTS
+
+
 def email_status(check_connection=True):
-    """Is email deliverable? Returns {"ok", "configured", "message", "default_recipient"}."""
+    """Where does email go? Returns a dict with:
+
+    mode: "test" (Mailpit test inbox), "real" (a real SMTP server), "unconfigured" or "unreachable";
+    ok: messages will be accepted; real: mode == "real"; message; default_recipient; inbox_url.
+    """
     default_recipient = recipient_for(None)
     backend = settings.EMAIL_BACKEND
-    base = {"default_recipient": default_recipient}
+    base = {"default_recipient": default_recipient, "inbox_url": settings.MAILPIT_URL}
+
+    def result(mode, ok, message):
+        return {**base, "mode": mode, "ok": ok, "real": mode == "real",
+                "configured": mode != "unconfigured", "message": message}
+
     if not backend.endswith("smtp.EmailBackend"):
-        return {**base, "ok": True, "configured": True, "message": f"Using {backend}"}
+        return result("real", True, f"Using {backend}")
     host, port = settings.EMAIL_HOST, settings.EMAIL_PORT
     if not host:
-        return {**base, "ok": False, "configured": False,
-                "message": "No email server is configured (EMAIL_HOST is empty in .env)."}
+        return result("unconfigured", False, "No email server is configured (EMAIL_HOST is empty in .env).")
+    test = is_test_inbox()
     if check_connection:
         key = f"monitor:smtp-reachable:{host}:{port}"
         error = cache.get(key)
@@ -58,9 +76,16 @@ def email_status(check_connection=True):
                 error = str(exc) or exc.__class__.__name__
             cache.set(key, error, 60)
         if error:
-            return {**base, "ok": False, "configured": True,
-                    "message": f"The email server {host}:{port} is not reachable ({error})."}
-    return {**base, "ok": True, "configured": True, "message": f"SMTP server {host}:{port}"}
+            if test:
+                return result("unreachable", False, (
+                    "The Mailpit test inbox isn't running (add \"mail\" to COMPOSE_PROFILES in .env), "
+                    "and no real email server is configured."))
+            return result("unreachable", False, f"The email server {host}:{port} is not reachable ({error}).")
+    if test:
+        return result("test", True, (
+            "Test mode: alert emails are caught by the Mailpit test inbox and are not delivered to real "
+            "mailboxes."))
+    return result("real", True, f"Real email via {host}:{port}")
 
 
 def send_new_results_email(run):
@@ -101,7 +126,7 @@ def send_new_results_email(run):
 def send_test_email(to=None):
     to = to or recipient_for(None)
     if not to:
-        raise NotifyError("No recipient: set a default notification address first.")
+        raise NotifyError("No recipient: enter an address or set a default notification address first.")
     send_mail(
         "[SearXNG Monitor] Test email",
         "This is a test message from SearXNG Monitor. Email notifications are working.",

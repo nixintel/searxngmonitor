@@ -13,10 +13,17 @@
     </div>
   </div></div>
 
-  <div class="card mb-3 {% if not email_status.ok %}border-warning{% endif %}"><div class="card-body">
+  <div class="card mb-3 {% if not email_status.real %}border-warning{% endif %}" id="email"><div class="card-body">
     <h2 class="h6 text-body-secondary text-uppercase">Email</h2>
-    {% if email_status.ok %}
-      <div class="small mb-2"><i class="bi bi-check-circle-fill text-success"></i> {{ email_status.message }}</div>
+    {% if email_status.mode == "test" %}
+      <div class="alert alert-warning py-2 small">
+        <strong><i class="bi bi-inbox"></i> Test inbox mode.</strong> Alert emails go to the Mailpit test inbox at
+        <a href="{{ email_status.inbox_url }}" target="_blank" rel="noopener">{{ email_status.inbox_url }}</a>
+        and are <strong>not delivered to real mailboxes</strong>. To receive real email, follow
+        <em>How to send real email</em> below.
+      </div>
+    {% elif email_status.ok %}
+      <div class="small mb-2"><span class="badge-soft badge-soft-success"><i class="bi bi-check-circle-fill"></i> Real email</span> {{ email_status.message }}</div>
     {% else %}
       <div class="alert alert-warning py-2 small"><i class="bi bi-exclamation-triangle-fill"></i> {{ email_status.message }}
         Set <code>EMAIL_HOST</code>, <code>EMAIL_PORT</code>, <code>EMAIL_HOST_USER</code>, <code>EMAIL_HOST_PASSWORD</code> and
@@ -26,6 +33,31 @@
     <button type="button" class="btn btn-sm btn-outline-secondary" hx-post="{% url 'test-notification' 'email' %}"
             hx-vals='js:{to: document.getElementById("id_notify_address").value}' hx-swap="none">
       <i class="bi bi-send"></i> Send test email</button>
+
+    <details class="mt-3 small" {% if email_status.mode != "real" %}open{% endif %}>
+      <summary class="fw-semibold">How to send real email</summary>
+      <div class="mt-2">
+        <p class="mb-2">The app doesn't deliver email itself: it hands each message to an <strong>email (SMTP) server</strong>
+          you have an account with, which delivers it. The easiest option is a Gmail account:</p>
+        <ol class="ps-3 mb-2">
+          <li>Use a Gmail account (ideally one just for this) and turn on
+            <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">2-Step Verification</a>.</li>
+          <li>Create an <strong>App Password</strong> at
+            <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>
+            and copy the 16-character password.</li>
+          <li>In the <code>.env</code> file in the project folder, set:
+<pre class="mt-1 mb-1 p-2 rounded bg-body-tertiary"><code>EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=true
+EMAIL_HOST_USER=youraccount@gmail.com
+EMAIL_HOST_PASSWORD=your16charapppassword
+DEFAULT_FROM_EMAIL=youraccount@gmail.com</code></pre></li>
+          <li>Run <code>docker compose up -d</code> in the project folder, reload this page and click <strong>Send test email</strong>.</li>
+        </ol>
+        <p class="mb-0 text-body-secondary">Using another provider (e.g. Brevo, Mailgun, SendGrid)? Use the SMTP host, port,
+          username and password it gives you. The README has troubleshooting tips.</p>
+      </div>
+    </details>
   </div></div>
 
   <div class="card mb-3"><div class="card-body">

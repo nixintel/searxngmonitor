@@ -222,35 +222,62 @@ doesn't apply to them, because the feed is fetched directly from Google.
 
 ### Email
 
-The app includes a **test inbox** called Mailpit. It catches every email the app sends, so nothing goes to a real
-mailbox.
+Out of the box, email alerts go to a **test inbox** called Mailpit, not to real mailboxes. Mailpit catches every
+email the app sends so you can see what the alerts look like, but **nothing is delivered to a real address**. The
+app shows this as **"Test inbox"** on the search form, the dashboard and the Settings page.
+
+**Try it with the test inbox:**
 
 1. Edit a search and tick **Email me about new results**.
-2. Enter any address, e.g. `me@example.com`, or set a default address under **Settings**.
+2. Enter any address, e.g. `me@example.com` (it doesn't need to be real), or set a default address under
+   **Settings**.
 3. Open **<http://localhost:8025>** to read the alert emails.
 
-To check it's working, go to **Settings** and click **Send test email**.
+**Sending real email**
 
-If the new-search form shows a yellow **"Email alerts are not available"** warning, the email server can't be
-reached. Check that `COMPOSE_PROFILES=mail` is in your `.env` file, then run `docker compose up -d`.
-
-<details>
-<summary>Sending real email instead (e.g. through Gmail or your organisation's mail server)</summary>
-
-Edit these lines in `.env`, then run `docker compose up -d`:
+The app doesn't deliver email itself. It hands each message to an **email server (SMTP server)** you have an
+account with, and that server delivers it, a bit like posting a letter at the post office:
 
 ```
-EMAIL_HOST=smtp.example.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=your-username
-EMAIL_HOST_PASSWORD=your-password
-EMAIL_USE_TLS=true
-DEFAULT_FROM_EMAIL=monitor@example.com
+SearXNG Monitor ──(login)──► email server (e.g. Gmail) ──► the recipient's inbox
 ```
 
-For Gmail, use `smtp.gmail.com` with an **App Password**, not your normal password. Then use **Settings → Send test
-email** to check it.
-</details>
+You can't usefully run your own email server from a laptop: internet providers block it, and anything that gets
+through is treated as spam. So borrow an existing account. The easiest is **Gmail**:
+
+1. Use a Gmail account. Ideally create one just for this course.
+2. Turn on **2-Step Verification** for it: <https://myaccount.google.com/security>.
+3. Create an **App Password** at <https://myaccount.google.com/apppasswords>. Google shows a 16-character
+   password. The app logs in with this, not your normal password.
+4. Edit these lines in `.env`:
+
+   ```
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USE_TLS=true
+   EMAIL_HOST_USER=youraccount@gmail.com
+   EMAIL_HOST_PASSWORD=your16charapppassword
+   DEFAULT_FROM_EMAIL=youraccount@gmail.com
+   ```
+
+   `DEFAULT_FROM_EMAIL` must be the same Gmail address.
+5. Run `docker compose up -d`. In **Settings**, the email status should now say **Real email via
+   smtp.gmail.com:587**.
+6. Click **Send test email** with your own address, and check your inbox (and spam folder).
+
+Other providers work the same way. Transactional email services such as Brevo, Mailgun or SendGrid give you an
+SMTP host, port, username and password to put in the same lines. Work Microsoft 365 accounts often block this
+kind of login.
+
+| Problem | What to do |
+|---|---|
+| Test email fails with *535 … authentication failed* | The App Password is wrong (no spaces), or 2-Step Verification isn't turned on. |
+| *Email server … is not reachable* | Check `EMAIL_HOST` and `EMAIL_PORT`. Some networks block outgoing port 587. |
+| The email lands in spam | Mark it as "not spam" once and later alerts will arrive normally. |
+| Still says **Test inbox** | `EMAIL_HOST` is still `mailpit`. Edit `.env` and run `docker compose up -d`. |
+
+> The App Password is stored in plain text in `.env`. Use a throwaway account, and delete the App Password at
+> <https://myaccount.google.com/apppasswords> when the course is over.
 
 ### Slack
 
@@ -385,7 +412,7 @@ Run `docker compose up -d` after any change.
 | `TIME_ZONE` | Time zone for displayed times, e.g. `Europe/London`. |
 | `DEFAULT_ENGINES` | Engines ticked by default for new searches (also editable under **Settings**). |
 | `MIN_INTERVAL_MINUTES` | The shortest schedule allowed (default `5`). |
-| `EMAIL_*` | Email server details (see [Email](#email)). |
+| `EMAIL_*` | Email server details (see [Email](#email)). Leave as `mailpit` for the test inbox. |
 | `SLACK_WEBHOOK_URL` | A default Slack webhook (you can also set it under **Settings**). |
 | `COMPOSE_PROFILES` | Extras to run: `mail` (test inbox), `proxy`, `flower` (task dashboard on port 5555). |
 

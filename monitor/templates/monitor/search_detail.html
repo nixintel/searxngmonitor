@@ -43,7 +43,7 @@
       <span class="small">{{ search.engines|join:", "|default:search.categories }}</span>
     {% endif %}
     {% if search.use_proxy %}<div class="mt-1"><span class="badge-soft badge-soft-info"><i class="bi bi-shield-lock"></i> via proxy</span></div>{% endif %}
-    {% if search.notify_email %}<div class="mt-1"><span class="badge-soft badge-soft-secondary"><i class="bi bi-envelope"></i> {{ search.notify_address|default:"default address" }}</span></div>{% endif %}
+    {% if search.notify_email %}<div class="mt-1"><span class="badge-soft badge-soft-secondary"><i class="bi bi-envelope"></i> {{ search.notify_address|default:"default address" }}{% if email_test_mode %} (test inbox){% endif %}</span></div>{% endif %}
     {% if search.notify_slack %}<div class="mt-1"><span class="badge-soft badge-soft-secondary"><i class="bi bi-slack"></i> Slack{% if not search.slack_webhook_url %} (default webhook){% endif %}</span></div>{% endif %}
   </div></div></div>
 </div>
