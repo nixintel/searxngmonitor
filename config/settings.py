@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 import dj_database_url
 from celery.schedules import crontab
@@ -80,9 +81,22 @@ TEMPLATES = [
     },
 ]
 
+def default_database_url():
+    """Build the Postgres URL from the same POSTGRES_* values the postgres container uses, so the password is
+    set in one place only. DATABASE_URL, if set, still wins. Falls back to SQLite outside Docker."""
+    password = env("POSTGRES_PASSWORD")
+    if not password:
+        return f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+    user = quote(env("POSTGRES_USER") or "searxngmonitor", safe="")
+    db = quote(env("POSTGRES_DB") or "searxngmonitor", safe="")
+    host = env("POSTGRES_HOST") or "postgres"
+    port = env("POSTGRES_PORT") or "5432"
+    return f"postgres://{user}:{quote(password, safe='')}@{host}:{port}/{db}"
+
+
 DATABASES = {
     "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=default_database_url(),
         conn_max_age=60,
         conn_health_checks=True,
     )
