@@ -1,6 +1,6 @@
 from django import forms
 
-from monitor.models import AppSettings, SavedSearch
+from monitor.models import TOR_ENGINES, AppSettings, SavedSearch
 from monitor.services import notify
 from monitor.services.searxng import available_engines
 
@@ -10,7 +10,7 @@ def engine_choices(selected=()):
     for name in selected or ():
         if name not in names:
             names.append(name)
-    return [(n, n) for n in sorted(names)]
+    return [(n, f"{n} (Tor)" if n in TOR_ENGINES else n) for n in sorted(names)]
 
 
 def _style(fields):
@@ -76,6 +76,15 @@ class SearchForm(forms.ModelForm):
         if data.get("source") == SavedSearch.Source.GOOGLE_ALERT:
             data["use_proxy"] = False  # the proxy only applies to SearXNG
             self.instance.use_proxy = False
+        else:
+            tor = [e for e in data.get("engines") or [] if e in TOR_ENGINES]
+            if tor:
+                if not AppSettings.load().tor_enabled:
+                    self.add_error("engines", f"{' and '.join(tor)} search .onion sites and need Tor, which is "
+                                              "turned off. Turn on Tor (Settings → Tor), or untick "
+                                              f"{'them' if len(tor) > 1 else 'it'}.")
+                data["use_proxy"] = False  # Tor searches always run through Tor, never the generic proxy
+                self.instance.use_proxy = False
         if data.get("notify_email") and not (data.get("notify_address") or notify.recipient_for(None)):
             self.add_error("notify_address", "Enter an address, or set a default address in Settings.")
         if data.get("notify_slack") and not (data.get("slack_webhook_url") or notify.slack_webhook_for(None)):

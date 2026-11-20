@@ -72,28 +72,37 @@ def render(app=None):
             .replace("__PROXY_URL__", json.dumps(url)))
 
 
-def apply(app=None):
-    """Write the proxy instance's settings.yml if it changed. Returns True if a new file was written."""
-    target = Path(settings.SEARXNG_PROXY_CONFIG_PATH)
+def write_if_changed(target, content, what):
+    """Atomically write `content` to `target` (a file on a volume shared with another container).
+
+    Returns True if a new file was written, False if it was unchanged or the directory is missing.
+    """
+    target = Path(target)
     if not target.parent.is_dir():
-        logger.warning("Proxy config directory %s not found; proxy settings not applied.", target.parent)
+        logger.warning("%s directory %s not found; settings not applied.", what, target.parent)
         return False
-    content = render(app)
     try:
         if target.exists() and target.read_text(encoding="utf-8") == content:
             return False
     except OSError:
         pass
-    # Atomic replace: needs write access to the directory only, and SearXNG never sees a half-written file.
-    fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=".settings-", suffix=".yml")
+    # Atomic replace: needs write access to the directory only, and the reader never sees a half-written file.
+    fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=f".{target.stem}-", suffix=target.suffix)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(content)
         os.chmod(tmp, 0o644)
         os.replace(tmp, target)
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
+    return True
+
+
+def apply(app=None):
+    """Write the proxy instance's settings.yml if it changed. Returns True if a new file was written."""
+    if not write_if_changed(settings.SEARXNG_PROXY_CONFIG_PATH, render(app), "Proxy config"):
+        return False
     logger.info("Proxy settings written for the proxy SearXNG instance (%s); it will restart to apply them.",
                 proxy_url(app, redact=True) or "proxy off")
     return True

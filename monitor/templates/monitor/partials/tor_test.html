@@ -1,0 +1,10 @@
+{% if r.error %}
+  <div class="alert alert-danger py-2 small mb-0"><i class="bi bi-x-octagon-fill"></i> {{ r.error }}</div>
+{% else %}
+  <div class="alert {% if r.is_tor %}alert-success{% else %}alert-warning{% endif %} py-2 small mb-0">
+    <div><strong>Address the Tor check service saw:</strong> <code>{{ r.ip }}</code></div>
+    {% if r.is_tor %}<div class="mt-1"><i class="bi bi-check-circle-fill"></i> Tor works: that address is a Tor exit, not yours.</div>
+    {% else %}<div class="mt-1"><i class="bi bi-exclamation-triangle-fill"></i> The check service says this traffic did not come through Tor.</div>{% endif %}
+    {% if r.instance != "ready" %}<div class="mt-1">Tor search engine: {{ r.detail }}</div>{% endif %}
+  </div>
+{% endif %}

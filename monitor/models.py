@@ -9,6 +9,10 @@ from django.utils import timezone
 
 GOOGLE_ALERT_FEED_RE = re.compile(r"^https://www\.google\.com/alerts/feeds/\d+/\d+/?$")
 
+# SearXNG engines that search .onion sites. They only exist on the searxng-tor instance, and a search that
+# includes one runs entirely through Tor.
+TOR_ENGINES = ("ahmia", "torch")
+
 
 def default_engines():
     return list(settings.DEFAULT_ENGINES)
@@ -42,6 +46,11 @@ class AppSettings(models.Model):
     proxy_port = models.PositiveIntegerField(null=True, blank=True)
     proxy_username = models.CharField(max_length=255, blank=True)
     proxy_password = models.CharField(max_length=255, blank=True)
+
+    # Tor for the .onion engines (ahmia, torch). Off by default: the bundled tor service makes no connections.
+    tor_enabled = models.BooleanField(
+        default=False, help_text="Connect to the Tor network so searches can use ahmia and torch (.onion sites).",
+    )
 
     class Meta:
         verbose_name = "app settings"
@@ -123,6 +132,22 @@ class SavedSearch(models.Model):
     @property
     def is_google_alert(self):
         return self.source == self.Source.GOOGLE_ALERT
+
+    @property
+    def tor_engines(self):
+        """The Tor engines (ahmia, torch) this search uses, if any."""
+        if self.is_google_alert:
+            return []
+        return [e for e in (self.engines or []) if e in TOR_ENGINES]
+
+    @property
+    def uses_tor(self):
+        return bool(self.tor_engines)
+
+    @property
+    def runs_via_proxy(self):
+        """True if runs go through the generic proxy (Tor searches never do: they always run through Tor)."""
+        return self.use_proxy and not self.is_google_alert and not self.uses_tor
 
     @property
     def interval(self) -> timedelta:

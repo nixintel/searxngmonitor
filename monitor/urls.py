@@ -28,5 +28,9 @@ urlpatterns = [
     path("settings/test/<str:channel>/", views.test_notification, name="test-notification"),
     path("settings/proxy/status/", views.proxy_status, name="proxy-status"),
     path("settings/proxy/test/", views.proxy_test, name="proxy-test"),
+    path("settings/tor/status/", views.tor_status, name="tor-status"),
+    path("settings/tor/test/", views.tor_test, name="tor-test"),
+    path("settings/tor/enable/", views.tor_enable, name="tor-enable"),
+    path("settings/tor/set/", views.tor_set, name="tor-set"),
     path("engines.json", views.engines_json, name="engines-json"),
 ]

@@ -56,7 +56,7 @@
     <input type="search" class="form-control form-control-sm mb-2" placeholder="Filter engines…" id="engine-filter">
     <div class="engine-box border rounded p-2 mb-1" id="engine-box">
       {% for cb in form.engines %}
-        <div class="form-check" data-name="{{ cb.choice_label }}">
+        <div class="form-check" data-name="{{ cb.choice_label }}"{% if cb.data.value == "ahmia" or cb.data.value == "torch" %} data-tor{% endif %}>
           {{ cb.tag }}<label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label>
         </div>
       {% endfor %}
@@ -64,6 +64,11 @@
     <div class="form-text mb-2">{{ form.engines.help_text }}
       <a href="#" id="engines-none">Clear</a></div>
     {% if form.engines.errors %}<div class="text-danger small">{{ form.engines.errors }}</div>{% endif %}
+    <div id="tor-section" style="display: none">
+      {% if not tor_enabled %}{% include "monitor/partials/tor_prompt.html" %}{% endif %}
+      <div class="form-text mb-2"><i class="bi bi-incognito"></i> With ahmia or torch ticked, this whole search runs
+        through Tor, including any other engines, and <em>Run through proxy</em> is ignored. Tor searches are slower.</div>
+    </div>
     <div class="row g-3">
       <div class="col-md-4">{% include "monitor/partials/field.html" with field=form.categories %}</div>
       <div class="col-md-4">{% include "monitor/partials/field.html" with field=form.language %}</div>
@@ -118,9 +123,18 @@
       el.style.display = el.dataset.name.toLowerCase().includes(q) ? '' : 'none';
     });
   });
+  // Ticking ahmia or torch shows the Tor note, plus one shared "turn on Tor" prompt if Tor is off.
+  function updateTor() {
+    const ticked = [...document.querySelectorAll('#engine-box [data-tor] input[type=checkbox]')].some(cb => cb.checked);
+    document.getElementById('tor-section').style.display = ticked ? '' : 'none';
+  }
+  document.getElementById('engine-box').addEventListener('change', updateTor);
+  updateTor();
+
   document.getElementById('engines-none').addEventListener('click', function (e) {
     e.preventDefault();
     document.querySelectorAll('#engine-box input[type=checkbox]').forEach(cb => cb.checked = false);
+    updateTor();
   });
 </script>
 {% endblock %}

@@ -93,7 +93,7 @@ DEFAULT_FROM_EMAIL=youraccount@gmail.com</code></pre></li>
       </div>
     </div>
     <div class="form-text mb-2">Username and password are optional; leave them blank if your proxy doesn't need them.
-      Use <strong>SOCKS5h</strong> for Tor or SSH tunnels so DNS lookups also go through the proxy.</div>
+      Use <strong>SOCKS5h</strong> for SSH tunnels so DNS lookups also go through the proxy. For Tor, use the bundled <a href="#tor">Tor</a> below.</div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
       <button type="button" class="btn btn-sm btn-outline-secondary" hx-post="{% url 'proxy-test' %}" hx-target="#proxy-test-result"
               hx-indicator="#proxy-test-spinner"><i class="bi bi-plug"></i> Test saved proxy</button>
@@ -101,6 +101,23 @@ DEFAULT_FROM_EMAIL=youraccount@gmail.com</code></pre></li>
       <span class="small text-body-secondary">Save first, then test. This checks your public IP with and without the proxy.</span>
     </div>
     <div id="proxy-test-result" class="mt-2"></div>
+  </div></div>
+
+  <div class="card mb-3" id="tor"><div class="card-body">
+    <h2 class="h6 text-body-secondary text-uppercase">Tor</h2>
+    <p class="small text-body-secondary">The <strong>ahmia</strong> and <strong>torch</strong> engines search Tor
+      (.onion) sites, so they need Tor. Tor is bundled with this app but is <strong>off by default</strong>: until you
+      turn it on, nothing connects to the Tor network. Searches that include ahmia or torch run entirely through
+      Tor (any other engines in them too), whatever <em>Run through proxy</em> says. This is separate from the proxy
+      above.</p>
+    {% include "monitor/partials/tor_controls.html" with tor_enabled=object.tor_enabled state=tor_state detail=tor_detail %}
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <button type="button" class="btn btn-sm btn-outline-secondary" hx-post="{% url 'tor-test' %}" hx-target="#tor-test-result"
+              hx-indicator="#tor-test-spinner"><i class="bi bi-plug"></i> Test Tor</button>
+      <span id="tor-test-spinner" class="htmx-indicator small text-body-secondary"><span class="spinner-border spinner-border-sm"></span> Testing…</span>
+      <span class="small text-body-secondary">Asks check.torproject.org whether your traffic arrives through Tor.</span>
+    </div>
+    <div id="tor-test-result" class="mt-2"></div>
   </div></div>
 
   <div class="card mb-3"><div class="card-body">

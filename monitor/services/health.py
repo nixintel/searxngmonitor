@@ -64,6 +64,15 @@ def check_proxy_instance():
     return state == "applied", detail
 
 
+def check_tor():
+    from monitor.services.tor_config import status
+
+    state, detail = status()
+    if state == "off":
+        return None, "Tor turned off in Settings"
+    return state == "ready", detail
+
+
 def check_workers():
     from config.celery import app
 
@@ -99,13 +108,14 @@ def run_all_checks():
         ("Redis broker", check_redis),
         ("SearXNG (direct)", check_searxng(settings.SEARXNG_URL)),
         ("SearXNG (proxy)", check_proxy_instance),
+        ("Tor (ahmia/torch)", check_tor),
         ("Celery workers", check_workers),
         ("Scheduler (beat)", check_beat),
         ("Email (SMTP)", check_email),
     ]
     # Checks that touch the DB run on this thread (Django connections are per-thread,
     # and a pool thread would leave its connection open); network probes run in parallel.
-    on_main = {"Database", "Email (SMTP)", "SearXNG (proxy)"}
+    on_main = {"Database", "Email (SMTP)", "SearXNG (proxy)", "Tor (ahmia/torch)"}
     with ThreadPoolExecutor(max_workers=len(checks)) as pool:
         futures = {name: pool.submit(_timed, name, fn) for name, fn in checks if name not in on_main}
         local = {name: _timed(name, fn) for name, fn in checks if name in on_main}

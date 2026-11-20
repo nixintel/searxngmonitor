@@ -1,0 +1,6 @@
+<span id="tor-status" {% if state == "connecting" %}hx-get="{% url 'tor-status' %}" hx-trigger="every 4s" hx-swap="outerHTML"{% endif %}>
+  {% if state == "ready" %}<span class="badge-soft badge-soft-success"><span class="status-dot"></span> Connected</span>
+  {% elif state == "connecting" %}<span class="badge-soft badge-soft-info"><span class="spinner-border"></span> Connecting…</span>
+  {% else %}<span class="badge-soft badge-soft-secondary">Off</span>{% endif %}
+  <span class="small text-body-secondary ms-1">{{ detail }}</span>
+</span>

@@ -22,7 +22,7 @@ from monitor.queries import (
     LOG_LEVELS, filter_logs, filter_results, filter_runs, reschedule_if_needed, result_view,
     result_view_counts, searches_with_stats, tags_for_search,
 )
-from monitor.services import health, notify, proxy_config
+from monitor.services import health, notify, proxy_config, tor_config
 from monitor.tasks import trigger_manual_run
 
 logger = logging.getLogger("monitor.views")
@@ -439,6 +439,7 @@ class SettingsView(LoginRequiredMixin, UpdateView):
         ctx["proxy_display"] = proxy_config.proxy_url(self.object, redact=True)
         ctx["proxy_state"], ctx["proxy_detail"] = proxy_config.instance_status(self.object)
         ctx["has_proxy_password"] = bool(self.object.proxy_password)
+        ctx["tor_state"], ctx["tor_detail"] = tor_config.status(self.object)
         return ctx
 
 
@@ -456,6 +457,48 @@ def proxy_test(request):
     except proxy_config.ProxyError as exc:
         result = {"error": str(exc)}
     return render(request, "monitor/partials/proxy_test.html", {"r": result})
+
+
+@login_required
+def tor_status(request):
+    state, detail = tor_config.status()
+    return render(request, "monitor/partials/tor_status.html", {"state": state, "detail": detail})
+
+
+@require_POST
+@login_required
+def tor_test(request):
+    try:
+        result = tor_config.test_tor()
+    except tor_config.TorError as exc:
+        result = {"error": str(exc)}
+    return render(request, "monitor/partials/tor_test.html", {"r": result})
+
+
+def _set_tor(enabled, where):
+    app = AppSettings.load()
+    if app.tor_enabled != enabled:
+        app.tor_enabled = enabled
+        app.save(update_fields=["tor_enabled"])
+        logger.info("Tor turned %s from %s", "on" if enabled else "off", where)
+    tor_config.apply(app)  # also rewrites torrc if the volume was reset
+    state, detail = tor_config.status(app)
+    return {"tor_enabled": app.tor_enabled, "state": state, "detail": detail}
+
+
+@require_POST
+@login_required
+def tor_enable(request):
+    """Turn Tor on from the prompt shown when ahmia/torch is ticked on the search form."""
+    return render(request, "monitor/partials/tor_prompt.html", _set_tor(True, "the search form"))
+
+
+@require_POST
+@login_required
+def tor_set(request):
+    """The Turn on / Turn off Tor button in Settings -> Tor. Takes effect immediately (no Save needed)."""
+    return render(request, "monitor/partials/tor_controls.html",
+                  _set_tor(request.POST.get("enabled") == "1", "Settings"))
 
 
 @require_POST

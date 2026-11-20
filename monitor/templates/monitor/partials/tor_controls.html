@@ -1,0 +1,12 @@
+{# Settings -> Tor: status plus an on/off button that takes effect immediately (it is not part of the page's Save). #}
+<div id="tor-controls" class="mb-3">
+  <div class="mb-2">Status: {% include "monitor/partials/tor_status.html" %}</div>
+  {% if tor_enabled %}
+    <button type="button" class="btn btn-sm btn-outline-danger" hx-post="{% url 'tor-set' %}" hx-vals='{"enabled": "0"}'
+            hx-target="#tor-controls" hx-swap="outerHTML"><i class="bi bi-power"></i> Turn off Tor</button>
+  {% else %}
+    <button type="button" class="btn btn-sm btn-warning" hx-post="{% url 'tor-set' %}" hx-vals='{"enabled": "1"}'
+            hx-target="#tor-controls" hx-swap="outerHTML"><i class="bi bi-power"></i> Turn on Tor</button>
+  {% endif %}
+  <span class="small text-body-secondary ms-1">Takes effect immediately.</span>
+</div>

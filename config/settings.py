@@ -142,6 +142,16 @@ SEARXNG_PROXY_URL = env("SEARXNG_PROXY_URL", "http://searxng-proxy:8080").rstrip
 # Proxy settings are edited in the UI and written here for the searxng-proxy container (shared volume).
 SEARXNG_PROXY_TEMPLATE = env("SEARXNG_PROXY_TEMPLATE", str(BASE_DIR / "searxng" / "proxy" / "settings.yml.template"))
 SEARXNG_PROXY_CONFIG_PATH = env("SEARXNG_PROXY_CONFIG_PATH", "/app/run/searxng-proxy/settings.yml")
+# Tor (Settings -> Tor): searches that include a Tor engine (ahmia, torch) run on the searxng-tor instance.
+# The web app writes torrc for the bundled tor service from the template; Tor stays off until turned on.
+SEARXNG_TOR_URL = env("SEARXNG_TOR_URL", "http://searxng-tor:8080").rstrip("/")
+TOR_TEMPLATE = env("TOR_TEMPLATE", str(BASE_DIR / "tor" / "torrc.template"))
+TOR_CONFIG_PATH = env("TOR_CONFIG_PATH", "/app/run/tor/torrc")
+TOR_SOCKS_URL = env("TOR_SOCKS_URL", "socks5h://tor:9050")
+TOR_CHECK_URL = env("TOR_CHECK_URL", "https://check.torproject.org/api/ip")
+# Must stay above the ahmia/torch timeouts in searxng/tor/settings.yml (30s), or the app gives up first.
+SEARXNG_TOR_TIMEOUT = float(env("SEARXNG_TOR_TIMEOUT", "60"))
+SEARXNG_TOR_MAX_RETRIES = env_int("SEARXNG_TOR_MAX_RETRIES", 1)
 # Used by Settings -> Proxy -> "Test proxy" to compare the public IP with and without the proxy.
 IP_ECHO_URL = env("IP_ECHO_URL", "https://api.ipify.org?format=json")
 SEARXNG_TIMEOUT = float(env("SEARXNG_TIMEOUT", "20"))

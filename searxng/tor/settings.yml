@@ -1,0 +1,50 @@
+# SearXNG settings for the TOR instance, used by searches that include a Tor engine (ahmia, torch).
+# All traffic goes through the bundled tor service. This instance only starts once Tor is turned on in
+# Settings -> Tor and has connected (see docker-compose.yml), because SearXNG refuses to start with
+# using_tor_proxy unless Tor works.
+use_default_settings: true
+
+general:
+  instance_name: "searxngmonitor-tor"
+
+server:
+  secret_key: "overridden-by-SEARXNG_SECRET"
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json
+
+outgoing:
+  request_timeout: 15.0   # Tor is slow
+  max_request_timeout: 45.0
+  using_tor_proxy: true   # loads the "onions" engines (ahmia, torch); SearXNG checks Tor at start-up
+  extra_proxy_timeout: 10
+  proxies:
+    all://:
+      - socks5h://tor:9050   # socks5h: .onion names are resolved inside Tor
+
+engines:
+  - name: ahmia
+    timeout: 30.0
+  - name: torch
+    timeout: 30.0
+    # Torch's server drops requests that carry the Sec-Fetch-* headers SearXNG sends when it imitates Chrome
+    # ("HTTP connection error"). A null value makes SearXNG leave the header out.
+    headers:
+      Sec-Fetch-Site: null
+      Sec-Fetch-Mode: null
+      Sec-Fetch-User: null
+      Sec-Fetch-Dest: null
+  - name: brave
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: yahoo
+    disabled: false
+  - name: mwmbl
+    disabled: false

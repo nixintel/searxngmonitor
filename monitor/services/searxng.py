@@ -96,7 +96,23 @@ class SearxngClient:
         return cls(settings.SEARXNG_PROXY_URL, **kw)
 
     @classmethod
+    def tor(cls, **kw):
+        from monitor.services.tor_config import TorError, ensure_ready
+
+        try:
+            ensure_ready()  # refuses unless Tor is on and the searxng-tor instance is up
+        except TorError as exc:
+            raise SearxngError(str(exc)) from exc
+        # Tor is slow: SearXNG gives ahmia/torch up to 30s, so wait longer than that, and retry at most once
+        # (each retry repeats the whole slow search).
+        kw.setdefault("timeout", settings.SEARXNG_TOR_TIMEOUT)
+        kw.setdefault("retries", settings.SEARXNG_TOR_MAX_RETRIES)
+        return cls(settings.SEARXNG_TOR_URL, **kw)
+
+    @classmethod
     def for_search(cls, search):
+        if search.uses_tor:
+            return cls.tor()  # the whole search, all engines included, runs through Tor
         return cls.proxied() if search.use_proxy else cls.direct()
 
     def _get(self, path, params=None):
@@ -176,7 +192,7 @@ def validate_engines(search):
     """
     if not search.engines:
         return search.engines
-    loaded = loaded_engine_names()
+    loaded = loaded_engine_names(tor=search.uses_tor)
     if loaded is None:  # couldn't fetch /config - send as-is
         return search.engines
     valid = [e for e in search.engines if e in loaded]
@@ -244,30 +260,39 @@ def store_results(search, run, results, *, mark_new=True):
     return len(fresh)
 
 
-def loaded_engine_names():
-    """Set of engine names loaded in SearXNG, or None if it can't be determined."""
-    engines = _fetch_engines()
+def loaded_engine_names(tor=False):
+    """Set of engine names loaded in the direct (or Tor) SearXNG instance, or None if it can't be determined."""
+    engines = _fetch_engines(settings.SEARXNG_TOR_URL if tor else settings.SEARXNG_URL)
     return {e["name"] for e in engines} if engines is not None else None
 
 
 def available_engines():
-    """Engines loaded in the direct SearXNG instance (cached), with a fallback list.
+    """Engines to offer in the UI: those loaded in the direct SearXNG instance (cached), with a fallback list,
+    plus the Tor engines (ahmia, torch).
 
     Disabled engines are included: naming an engine explicitly in a query works
     even when it is disabled by default in SearXNG.
+
+    The Tor engines only exist on the searxng-tor instance, which runs only while Tor is on, so they are
+    always listed (marked "tor") to let the user pick them and be prompted to turn Tor on.
     """
-    engines = _fetch_engines()
-    if engines is not None:
-        return engines
-    return [{"name": n, "categories": [], "enabled": True} for n in settings.DEFAULT_ENGINES]
+    from monitor.models import TOR_ENGINES
+
+    engines = _fetch_engines(settings.SEARXNG_URL)
+    if engines is None:
+        engines = [{"name": n, "categories": [], "enabled": True} for n in settings.DEFAULT_ENGINES]
+    engines = [e for e in engines if e["name"] not in TOR_ENGINES]
+    engines += [{"name": n, "categories": ["onions"], "enabled": True, "tor": True} for n in TOR_ENGINES]
+    return sorted(engines, key=lambda e: e["name"])
 
 
-def _fetch_engines():
-    cached = cache.get("searxng:engines")
+def _fetch_engines(base_url):
+    key = f"searxng:engines:{base_url}"
+    cached = cache.get(key)
     if cached:
         return cached
     try:
-        cfg = SearxngClient.direct(timeout=5, retries=0).config()
+        cfg = SearxngClient(base_url, timeout=5, retries=0).config()
         engines = sorted(
             (
                 {"name": e["name"], "categories": e.get("categories", []), "enabled": e.get("enabled", True)}
@@ -275,8 +300,8 @@ def _fetch_engines():
             ),
             key=lambda e: e["name"],
         )
-        cache.set("searxng:engines", engines, 3600)
+        cache.set(key, engines, 3600)
         return engines
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Could not load engine list from SearXNG: %s", exc)
+        logger.warning("Could not load engine list from SearXNG at %s: %s", base_url, exc)
         return None

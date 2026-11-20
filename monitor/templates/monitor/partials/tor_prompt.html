@@ -1,0 +1,16 @@
+{# Shown on the search form when ahmia/torch is ticked while Tor is off. Swapped in place by "Turn on Tor". #}
+<div id="tor-prompt" class="alert {% if tor_enabled %}alert-info{% else %}alert-warning{% endif %} small mb-2">
+  {% if tor_enabled %}
+    <div><i class="bi bi-check-circle"></i> <strong>Tor is on.</strong>
+      {% include "monitor/partials/tor_status.html" %}</div>
+    <div class="mt-1">You can save the search now. Runs will fail with an explanation until Tor has connected.</div>
+  {% else %}
+    <div><i class="bi bi-exclamation-triangle-fill"></i> <strong>Ahmia and Torch search .onion sites and need Tor, which is off.</strong>
+      Tor is bundled with this app but doesn't connect to the Tor network until you turn it on.</div>
+    <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+      <button type="button" class="btn btn-sm btn-warning" hx-post="{% url 'tor-enable' %}" hx-target="#tor-prompt"
+              hx-swap="outerHTML"><i class="bi bi-power"></i> Turn on Tor</button>
+      <a href="{% url 'settings' %}#tor">Tor settings</a>
+    </div>
+  {% endif %}
+</div>

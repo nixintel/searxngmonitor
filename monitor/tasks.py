@@ -30,7 +30,7 @@ def enqueue_run(run):
 
 
 def trigger_manual_run(search):
-    run = SearchRun.objects.create(search=search, trigger=SearchRun.Trigger.MANUAL, proxy_used=search.use_proxy)
+    run = SearchRun.objects.create(search=search, trigger=SearchRun.Trigger.MANUAL, proxy_used=search.runs_via_proxy)
     logger.info("Manual run requested for '%s'", search.name, extra={"search_id": search.id, "run_id": run.id})
     return enqueue_run(run)
 
@@ -52,7 +52,7 @@ def dispatch_due_searches():
             search.save(update_fields=["next_run_at"])
             runs.append(
                 SearchRun.objects.create(
-                    search=search, trigger=SearchRun.Trigger.SCHEDULED, proxy_used=search.use_proxy
+                    search=search, trigger=SearchRun.Trigger.SCHEDULED, proxy_used=search.runs_via_proxy
                 )
             )
     for run in runs:
@@ -83,7 +83,7 @@ def run_search(self, run_id):
     try:
         run.status = SearchRun.Status.RUNNING
         run.started_at = timezone.now()
-        run.proxy_used = search.use_proxy
+        run.proxy_used = search.runs_via_proxy
         run.save(update_fields=["status", "started_at", "proxy_used"])
 
         is_first = not search.runs.filter(status=SearchRun.Status.SUCCESS).exists()

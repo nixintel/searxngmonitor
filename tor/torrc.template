@@ -1,0 +1,11 @@
+# Tor settings for the bundled tor service.
+# Do not edit by hand: the web app renders this file whenever Tor is turned on or off in Settings -> Tor.
+# DisableNetwork 1 = Tor runs but makes no connections to the Tor network (the default).
+SocksPort 0.0.0.0:9050
+SocksPolicy accept 10.0.0.0/8
+SocksPolicy accept 172.16.0.0/12
+SocksPolicy accept 192.168.0.0/16
+SocksPolicy reject *
+DataDirectory /var/lib/tor
+Log notice stdout
+DisableNetwork __DISABLE_NETWORK__

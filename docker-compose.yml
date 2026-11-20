@@ -3,6 +3,8 @@
 # Optional profiles (set COMPOSE_PROFILES in .env, comma separated):
 #   flower - Celery Flower dashboard on :5555
 #   mail   - Mailpit SMTP sink + web UI on :8025 (for testing email alerts)
+# Tor (for the ahmia/torch .onion engines) is always bundled but stays OFF until it is turned on in
+# Settings -> Tor: until then the tor service makes no connections and searxng-tor doesn't start.
 
 # The image is built once (by "web") and reused by worker/beat/flower.
 x-app: &app
@@ -23,12 +25,15 @@ services:
     pull_policy: build
     volumes:
       - searxng-proxy-config:/app/run/searxng-proxy   # web writes the proxy instance's settings here
+      - tor-config:/app/run/tor                        # web writes torrc here (Settings -> Tor)
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       searxng-proxy-config:
+        condition: service_completed_successfully
+      tor-config:
         condition: service_completed_successfully
     ports:
       - "${WEB_PORT:-8000}:8000"
@@ -147,6 +152,70 @@ services:
       searxng-proxy-config:
         condition: service_completed_successfully
 
+  # Prepares the volumes for the tor service: torrc (written by the web app, Tor OFF by default) and the
+  # "ready" flag the tor service sets once it has connected. This re-runs on every "docker compose up" of web,
+  # so it must not disturb a running Tor (e.g. it leaves the ready flag alone; the tor service manages it).
+  tor-config:
+    image: alpine:3.20
+    volumes:
+      - ./tor/torrc.template:/template/torrc.template:ro
+      - tor-config:/etc/tor-config
+      - tor-state:/var/run/tor-state
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -f /etc/tor-config/torrc ]; then
+          sed -e 's#__DISABLE_NETWORK__#1#' /template/torrc.template > /etc/tor-config/torrc
+        fi
+        chown -R 1000:1000 /etc/tor-config
+        chmod 0777 /etc/tor-config /var/run/tor-state
+        chmod 0644 /etc/tor-config/torrc
+        echo "tor config volumes ready"
+
+  # Tor SOCKS proxy (internal network only, no published ports). Dormant until Tor is turned on in Settings.
+  tor:
+    build: ./tor
+    image: searxngmonitor-tor
+    restart: unless-stopped
+    volumes:
+      - tor-config:/etc/tor-config:ro
+      - tor-state:/var/run/tor-state
+    depends_on:
+      tor-config:
+        condition: service_completed_successfully
+
+  # SearXNG instance for searches that include a Tor engine (ahmia, torch). All its traffic goes through the
+  # tor service. SearXNG refuses to start with using_tor_proxy unless Tor works, so the wrapper only starts it
+  # once the tor service reports it has connected, and stops it again when Tor is turned off.
+  searxng-tor:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
+      SEARXNG_CONTACT_URL: ${SEARXNG_CONTACT_URL:-}
+    volumes:
+      - ./searxng/tor:/etc/searxng:rw
+      - tor-state:/var/run/tor-state:ro
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        ready=/var/run/tor-state/ready
+        while true; do
+          if [ -f $$ready ]; then
+            echo "Tor is connected: starting SearXNG (Tor)"
+            /usr/local/searxng/entrypoint.sh &
+            pid=$$!
+            while kill -0 $$pid 2>/dev/null && [ -f $$ready ]; do sleep 3; done
+            kill $$pid 2>/dev/null; wait $$pid 2>/dev/null
+            echo "SearXNG (Tor) stopped: Tor was turned off, is reconnecting, or SearXNG exited"
+          fi
+          sleep 3
+        done
+    depends_on:
+      - tor
+
   mailpit:
     image: axllent/mailpit:latest
     profiles: ["mail"]
@@ -158,3 +227,5 @@ volumes:
   pgdata:
   redisdata:
   searxng-proxy-config:
+  tor-config:
+  tor-state:

@@ -388,7 +388,8 @@ Google Alerts aren't affected.
 1. Go to **Settings → Proxy**.
 2. Tick **Use a proxy…** and fill in:
    * **Type:** `HTTP`, `HTTPS`, `SOCKS5` or `SOCKS5h`. Your proxy provider will tell you which. Use **SOCKS5h**
-     for Tor or an SSH tunnel, so DNS lookups also go through the proxy.
+     for an SSH tunnel, so DNS lookups also go through the proxy. (For Tor, use the bundled Tor instead: see
+     [Search Tor (.onion) sites](#search-tor-onion-sites-with-ahmia-and-torch).)
    * **Host** and **Port**, e.g. `proxy.example.net` and `1080`.
    * **Username** and **Password**, only if your proxy needs them. Any characters are fine.
 3. Click **Save**. The status shows **Applying…** for about 20 seconds while the proxy search engine restarts,
@@ -411,6 +412,104 @@ IP address.
 | *The proxy host … could not be found* | Check the hostname for typos. Enter just the name or IP, without `http://`. |
 | *Nothing accepted the connection* | Check the port, and that the proxy is running and allows your IP. |
 | Both IP addresses are the same | Your traffic isn't leaving through the proxy. Check the Type, Host and Port with your provider. |
+
+### Search Tor (.onion) sites with Ahmia and Torch
+
+#### What this is
+
+Two search engines can index these .onion sites, and the app can use both if needed:
+
+* **ahmia**: the best-known .onion search engine.
+* **torch**: one of the oldest. It often finds different sites from ahmia, so ticking both gives better coverage.
+
+To reach them, the app needs **Tor**.
+
+#### How it works in this app
+
+Tor is **bundled with the app but turned off by default**. Nothing connects to the Tor network until you turn it on.
+
+```text
+Search with ahmia/torch ──► Tor search engine ──► tor service ──► Tor network ──► ahmia / torch (.onion)
+Every other search      ──► normal search engine (direct, or through your proxy) ──► the internet
+```
+
+* **`tor`:** a container that runs Tor. While Tor is off, it runs but makes no connections at all.
+* **`searxng-tor`:** a separate copy of SearXNG that sends all its traffic through Tor. It only starts once Tor has
+  connected, and stops when you turn Tor off.
+* **Which searches use Tor:** any search with **ahmia** or **torch** ticked. The **whole** search runs through Tor,
+  including other engines ticked with them (e.g. bing). *Run through proxy* is ignored for these searches.
+* **Separate from the proxy:** Tor has nothing to do with **Settings → Proxy**. You don't need to set up a proxy
+  to use Tor.
+* **What the app fetches:** only the ahmia and torch **search results pages** (titles, links and snippets). It
+  never opens the .onion sites in those results.
+
+#### Before you turn it on
+
+
+* **Results can link to illegal or disturbing material.** Ahmia filters out known abuse content, but no filter is
+  complete. Treat .onion links in your results with care. Don't open them in your everyday browser. If you need to
+  visit one, use Tor Browser in an isolated environment, such as a dedicated virtual machine, and follow your
+  organisation's rules.
+* **Expect it to be slower.** A Tor search usually takes 5–15 seconds, compared with 1–3 for a normal one.
+
+#### Turn Tor on
+
+Use either of these:
+
+* **From a search:** tick **ahmia (Tor)** and/or **torch (Tor)**. A yellow box appears; click **Turn on Tor**.
+* **From Settings:** go to **Settings → Tor** and click **Turn on Tor**. It takes effect immediately; there is
+  no need to click **Save**.
+
+Then:
+
+1. Watch the status in **Settings → Tor**: **Connecting…**, then **Connected**. This usually takes under a
+   minute. The first time can take a few minutes, while Tor downloads its list of relays.
+2. Click **Test Tor**. It asks <https://check.torproject.org> whether your traffic arrives through Tor. You should
+   see *Tor works*, with a Tor exit address that is not your own.
+
+To watch Tor connect, run this in the project folder (press `Ctrl+C` to stop watching):
+
+```bash
+docker compose logs -f tor searxng-tor
+```
+
+You should see Tor count up to `Bootstrapped 100% (done)`, then `Tor is connected: starting SearXNG (Tor)`.
+
+#### Create a Tor search
+
+1. Create a search as usual (see [Your first monitor](#your-first-monitor)).
+2. Under **Engines**, tick **ahmia (Tor)**, **torch (Tor)** or both. Type `(Tor)` in the filter box to find them.
+3. Click **Save**, then **Run now** to try it.
+
+Results from both engines are combined, like any other engines. Each result shows which engines found it.
+
+**Query tips:** keep queries short. Both engines are simple keyword search engines, so a single word or a short
+phrase works best, e.g. `acme` or `"acme corp"`. Ahmia shows at most 10 results per page.
+
+#### Turn Tor off
+
+Click **Turn off Tor** in **Settings → Tor**. Tor disconnects within a few seconds, and the Tor search engine stops. It will stay on unless you turn it off.
+
+Your Tor searches are kept but **fail** until you turn Tor back on. Each failed run says *Tor is turned off in
+Settings*. They never run without Tor. To stop them, pause them on the dashboard, or untick ahmia and torch. 
+
+#### Check on it
+
+* **Settings → Tor** shows the current status: **Off**, **Connecting…** or **Connected**.
+* **Ops → Health** has a **Tor (ahmia/torch)** line. It shows **n/a** while Tor is off, which is not an error.
+* **Ops → History** shows each run. If ahmia or torch didn't answer, it's listed as ⚠️ *unresponsive*. The run
+  still keeps the other engine's results.
+
+#### Troubleshooting Tor
+
+| Problem | What to do |
+|---|---|
+| Stuck on **Connecting…** for more than 5 minutes | Run `docker compose logs tor`. If it stops at a low `Bootstrapped` percentage, your network is probably blocking Tor. Try another network. Bridges, which help get around blocking, aren't supported. |
+| **Test Tor** says *the connection through Tor was dropped* | This happens now and then, especially just after Tor connects. Wait a few seconds and test again. |
+| Saving a search says ahmia/torch *need Tor, which is turned off* | Turn Tor on (see above), then save again. |
+| A run fails with *Tor isn't ready* | Tor is still connecting. Wait for **Connected**, then click **Run now**. |
+| ahmia or torch shows ⚠️ *unresponsive* | Onion sites are sometimes slow or down. It's most common in the first minute or two after Tor connects. If it happens on every run for hours, the engine may be down. |
+| Runs time out or say *Skipped: previous run still in progress* | Tor is being slow. Set a longer schedule, e.g. hourly. If needed, raise `SEARXNG_TOR_TIMEOUT` in `.env` (default `60` seconds; keep it above 30), then run `docker compose up -d`. |
 
 ### Use the API from scripts
 
@@ -439,25 +538,11 @@ Run `docker compose up -d` after any change.
 | `TIME_ZONE` | Time zone for displayed times, e.g. `Europe/London`. |
 | `DEFAULT_ENGINES` | Engines ticked by default for new searches (also editable under **Settings**). |
 | `MIN_INTERVAL_MINUTES` | The shortest schedule allowed (default `5`). |
+| `SEARXNG_TOR_TIMEOUT` | Seconds to wait for a Tor (ahmia/torch) search (default `60`). Keep it above 30, the engines' own limit. |
 | `EMAIL_*` | Email server details (see [Email](#email)). Leave as `mailpit` for the test inbox. |
 | `SLACK_WEBHOOK_URL` | A default Slack webhook (you can also set it under **Settings**). |
 | `COMPOSE_PROFILES` | Extras to run: `mail` (test inbox) and `flower` (task dashboard on port 5555). The proxy is set up under **Settings**. |
 
----
-
-## For instructors
-
-* **Security:** the app is meant to run on a student's own machine. If you host it for others, change every
-  `change-me` value in `.env` (generate secrets with `python -c "import secrets; print(secrets.token_urlsafe(48))"`),
-  put it behind HTTPS, and set `DJANGO_ALLOWED_HOSTS` / `DJANGO_CSRF_TRUSTED_ORIGINS` to your hostname. Ports 8000
-  and 8025 listen on all network interfaces by default.
-* **Shared IPs:** a classroom behind one IP address shares the engines' rate limits. Expect more ⚠️ unresponsive
-  engines if everyone searches at once. Longer intervals and the proxy option help.
-* **Run the test suite:** `docker compose exec web python manage.py test monitor`.
-* **More workers for heavy use:** `docker compose up -d --scale worker=3`.
-* **Admin interface:** <http://localhost:8000/admin/> gives raw access to all data.
-
----
 
 ## License
 
