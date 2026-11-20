@@ -152,6 +152,14 @@ TOR_CHECK_URL = env("TOR_CHECK_URL", "https://check.torproject.org/api/ip")
 # Must stay above the ahmia/torch timeouts in searxng/tor/settings.yml (30s), or the app gives up first.
 SEARXNG_TOR_TIMEOUT = float(env("SEARXNG_TOR_TIMEOUT", "60"))
 SEARXNG_TOR_MAX_RETRIES = env_int("SEARXNG_TOR_MAX_RETRIES", 1)
+# Update check (README -> Keeping SearXNG up to date): compares the running SearXNG version with the newest image
+# on Docker Hub and shows a notice once it is this many days behind. Nothing is updated automatically.
+SEARXNG_UPDATE_CHECK = env_bool("SEARXNG_UPDATE_CHECK", not TESTING)  # tests never call Docker Hub
+SEARXNG_UPDATE_CHECK_URL = env(
+    "SEARXNG_UPDATE_CHECK_URL",
+    "https://hub.docker.com/v2/repositories/searxng/searxng/tags?page_size=25&ordering=last_updated",
+)
+SEARXNG_UPDATE_MIN_AGE_DAYS = env_int("SEARXNG_UPDATE_MIN_AGE_DAYS", 7)
 # Used by Settings -> Proxy -> "Test proxy" to compare the public IP with and without the proxy.
 IP_ECHO_URL = env("IP_ECHO_URL", "https://api.ipify.org?format=json")
 SEARXNG_TIMEOUT = float(env("SEARXNG_TIMEOUT", "20"))
@@ -189,6 +197,10 @@ CELERY_BEAT_SCHEDULE = {
     "prune-old-records": {
         "task": "monitor.tasks.prune_old_records",
         "schedule": crontab(hour=3, minute=15),
+    },
+    "check-searxng-update": {
+        "task": "monitor.tasks.check_searxng_update",
+        "schedule": 12 * 3600,
     },
 }
 

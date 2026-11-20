@@ -22,7 +22,7 @@ from monitor.queries import (
     LOG_LEVELS, filter_logs, filter_results, filter_runs, reschedule_if_needed, result_view,
     result_view_counts, searches_with_stats, tags_for_search,
 )
-from monitor.services import health, notify, proxy_config, tor_config
+from monitor.services import health, notify, proxy_config, tor_config, updates
 from monitor.tasks import trigger_manual_run
 
 logger = logging.getLogger("monitor.views")
@@ -70,6 +70,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 ctx["email_problem"] = status["message"]
             elif status["mode"] == "test":
                 ctx["email_test_mode"] = status
+        update = updates.cached()  # cache only: no network call on page load
+        if update and update.get("update_available"):
+            ctx["searxng_update"] = update
+            ctx["searxng_update_commands"] = updates.UPDATE_COMMANDS
         return ctx
 
 

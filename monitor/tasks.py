@@ -9,7 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from monitor.models import AppSettings, LogEntry, SavedSearch, SearchRun
-from monitor.services import notify
+from monitor.services import notify, updates
 from monitor.services.feeds import fetch_google_alert
 from monitor.services.health import BEAT_HEARTBEAT_KEY
 from monitor.services.searxng import SearxngError, fetch_results, store_results
@@ -40,6 +40,11 @@ def dispatch_due_searches():
     """Beat tick: queue every enabled search whose next_run_at has passed."""
     now = timezone.now()
     cache.set(BEAT_HEARTBEAT_KEY, now, timeout=None)
+    # The 12-hourly update check first fires 12h after beat starts; check sooner if there's no result yet.
+    if settings.SEARXNG_UPDATE_CHECK and updates.cached() is None and cache.add(
+        "monitor:searxng:update:queued", 1, timeout=3600
+    ):
+        check_searxng_update.delay()
     with transaction.atomic():
         due = list(
             SavedSearch.objects.select_for_update(skip_locked=True)
@@ -167,6 +172,15 @@ def reap_stale_runs():
     if count:
         logger.warning("Marked %d stale run(s) as failed", count)
     return count
+
+
+@shared_task
+def check_searxng_update():
+    """Refresh the cached "is a newer SearXNG available?" result (shown in Ops -> Health and on the dashboard)."""
+    result = updates.check(force=True)
+    if result is None:
+        return "disabled"
+    return "error" if result.get("error") else ("update available" if result["update_available"] else "up to date")
 
 
 @shared_task

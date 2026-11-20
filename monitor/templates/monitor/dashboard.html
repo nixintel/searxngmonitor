@@ -17,6 +17,18 @@
   </div>
 </div>
 
+{% if searxng_update %}
+<div class="alert alert-warning d-flex gap-2" id="searxng-update-banner"><i class="bi bi-arrow-up-circle fs-5"></i>
+  <div><strong>A SearXNG update is available.</strong> You're running {{ searxng_update.running }}; the latest is
+    {{ searxng_update.latest }} ({{ searxng_update.days_behind }} day{{ searxng_update.days_behind|pluralize }} newer). Search engines change often, so
+    updating keeps them working. In the project folder, run:
+    <pre class="mt-1 mb-1 p-2 rounded bg-body-tertiary"><code>{% for c in searxng_update_commands %}{{ c }}{% if not forloop.last %}
+{% endif %}{% endfor %}</code></pre>
+    Searches pause for about 20 seconds while SearXNG restarts.
+    <a href="https://github.com/nixintel/searxngmonitor#keeping-searxng-up-to-date" target="_blank" rel="noopener">More about updating</a>.</div>
+</div>
+{% endif %}
+
 {% if email_problem %}
 <div class="alert alert-warning d-flex gap-2"><i class="bi bi-envelope-exclamation fs-5"></i>
   <div><strong>Email alerts are not being delivered.</strong> {{ email_problem }}

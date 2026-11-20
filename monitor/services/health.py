@@ -73,6 +73,21 @@ def check_tor():
     return state == "ready", detail
 
 
+def check_searxng_version():
+    from monitor.services import updates
+
+    result = updates.check()
+    if result is None:
+        return None, "Update check turned off (SEARXNG_UPDATE_CHECK=false)"
+    if result.get("error"):
+        return None, f"Couldn't check for updates: {result['error']}"
+    if result["update_available"]:
+        days = result["days_behind"]
+        return True, (f"Update available: {result['latest']} is {days} day{'s' if days != 1 else ''} newer than "
+                      f"{result['running']}. Run: {' && '.join(updates.UPDATE_COMMANDS)}")
+    return True, f"{result['running']} (latest {result['latest']})"
+
+
 def check_workers():
     from config.celery import app
 
@@ -109,13 +124,14 @@ def run_all_checks():
         ("SearXNG (direct)", check_searxng(settings.SEARXNG_URL)),
         ("SearXNG (proxy)", check_proxy_instance),
         ("Tor (ahmia/torch)", check_tor),
+        ("SearXNG version", check_searxng_version),
         ("Celery workers", check_workers),
         ("Scheduler (beat)", check_beat),
         ("Email (SMTP)", check_email),
     ]
     # Checks that touch the DB run on this thread (Django connections are per-thread,
     # and a pool thread would leave its connection open); network probes run in parallel.
-    on_main = {"Database", "Email (SMTP)", "SearXNG (proxy)", "Tor (ahmia/torch)"}
+    on_main = {"Database", "Email (SMTP)", "SearXNG (proxy)", "Tor (ahmia/torch)", "SearXNG version"}
     with ThreadPoolExecutor(max_workers=len(checks)) as pool:
         futures = {name: pool.submit(_timed, name, fn) for name, fn in checks if name not in on_main}
         local = {name: _timed(name, fn) for name, fn in checks if name in on_main}

@@ -123,7 +123,8 @@ Run these from the project folder:
 | Check status | `docker compose ps` |
 | Watch what the app is doing | `docker compose logs -f worker` (press **Ctrl+C** to stop watching) |
 | Apply changes you made to `.env` | `docker compose up -d` |
-| Get the latest version of the app | `git pull`, then `docker compose up -d --build` |
+| Update SearXNG (the search engines) | `docker compose pull searxng searxng-proxy searxng-tor`, then `docker compose up -d` (see [Keeping SearXNG up to date](#keeping-searxng-up-to-date)) |
+| Get the latest version of the app | `git pull`, then `docker compose pull searxng searxng-proxy searxng-tor`, then `docker compose up -d --build` |
 | **Delete everything and start fresh** | `docker compose down -v` ⚠️ removes all searches and results |
 
 Searches keep running on schedule only while the app is running. Stopping Docker or shutting down your computer
@@ -350,10 +351,63 @@ Click **Ops** in the top menu.
 
 | Tab | Use it to… |
 |---|---|
-| **Health** | See whether every part of the app is up. All cards should be green. *SearXNG (proxy)* shows grey unless you set up a proxy. |
+| **Health** | See whether every part of the app is up. All cards should be green. *SearXNG (proxy)* and *Tor* show grey unless you set them up. *SearXNG version* says whether an update is available. |
 | **Tasks** | See searches that are running or queued right now, and which searches run next. |
 | **History** | Browse every run of every search. Filter by search or status, e.g. *Failed*. |
 | **Logs** | Read what the app has been doing: runs, errors, emails sent. Choose **WARNING+** to see only problems. |
+
+---
+
+## Keeping SearXNG up to date
+
+SearXNG gets its results by reading search engines' pages. Those sites change often, which can stop an engine
+from working, and SearXNG publishes fixes several times a week. **Update it every week or two**, or whenever
+an engine keeps showing up as ⚠️ *unresponsive*.
+
+SearXNG **doesn't update itself**. Once Docker has downloaded it, it keeps using that copy, even after you
+restart the app. Automatic updates would need a container with full control of Docker on your computer, so the
+app doesn't do that. Instead it tells you when an update is due.
+
+### How you know an update is due
+
+Twice a day the app compares the SearXNG version it's running with the newest one published on
+[Docker Hub](https://hub.docker.com/r/searxng/searxng). When yours is **7 days or more** behind:
+
+* The **dashboard** shows a yellow *A SearXNG update is available* box with the commands to run.
+* **Ops → Health → SearXNG version** says *Update available*.
+
+The check sends nothing about you or your searches. It only asks Docker Hub for its public list of SearXNG
+versions. If the app can't reach Docker Hub, e.g. on an offline network, the Health card shows
+*Couldn't check for updates* and nothing else is affected.
+
+### Update SearXNG
+
+In the project folder, run these two commands. They work the same in Terminal, PowerShell and bash:
+
+```bash
+docker compose pull searxng searxng-proxy searxng-tor
+docker compose up -d
+```
+
+The first downloads the newest SearXNG. The second restarts the three SearXNG containers with it. Your searches,
+results and settings are kept. Searches pause for about 20 seconds while SearXNG restarts. If Tor is on, the Tor
+search engine restarts once Tor has reconnected.
+
+The dashboard box goes away at the next check, within 12 hours.
+
+### Update everything else
+
+* **The app itself:** `git pull`, then the two commands above, using `docker compose up -d --build` in place of
+  `docker compose up -d`.
+* **Tor and the app's base system** (security fixes): `docker compose build --pull`, then `docker compose up -d`.
+  Do this every month or so.
+
+### Change or turn off the check
+
+Set these in `.env`, then run `docker compose up -d`:
+
+* `SEARXNG_UPDATE_MIN_AGE_DAYS=14`: only show the notice when you're at least 14 days behind (default `7`).
+* `SEARXNG_UPDATE_CHECK=false`: never check. Remember to update by hand now and then.
 
 ---
 
@@ -539,6 +593,8 @@ Run `docker compose up -d` after any change.
 | `DEFAULT_ENGINES` | Engines ticked by default for new searches (also editable under **Settings**). |
 | `MIN_INTERVAL_MINUTES` | The shortest schedule allowed (default `5`). |
 | `SEARXNG_TOR_TIMEOUT` | Seconds to wait for a Tor (ahmia/torch) search (default `60`). Keep it above 30, the engines' own limit. |
+| `SEARXNG_UPDATE_CHECK` | `false` stops the twice-daily check for SearXNG updates (default `true`). See [Keeping SearXNG up to date](#keeping-searxng-up-to-date). |
+| `SEARXNG_UPDATE_MIN_AGE_DAYS` | How many days behind SearXNG must be before the update notice shows (default `7`). |
 | `EMAIL_*` | Email server details (see [Email](#email)). Leave as `mailpit` for the test inbox. |
 | `SLACK_WEBHOOK_URL` | A default Slack webhook (you can also set it under **Settings**). |
 | `COMPOSE_PROFILES` | Extras to run: `mail` (test inbox) and `flower` (task dashboard on port 5555). The proxy is set up under **Settings**. |
