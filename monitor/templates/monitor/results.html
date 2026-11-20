@@ -1,0 +1,65 @@
+{% extends "monitor/base.html" %}
+{% load monitor_tags %}
+{% block title %}{% if q %}{{ q }} · {% endif %}Results · SearXNG Monitor{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <h1 class="page-title">Search all results</h1>
+  <div class="page-subtitle">Find results from every saved search by keyword. Every word must match the title, snippet
+    or URL; put an exact phrase in quotes, e.g. <code>acme "data breach"</code>.</div>
+</div>
+
+<form method="get" class="row g-2 align-items-center mb-3" role="search">
+  <input type="hidden" name="view" value="{{ view }}">
+  {% if active_tag %}<input type="hidden" name="tag" value="{{ active_tag }}">{% endif %}
+  <div class="col-md-7">
+    <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Keywords, e.g. acme &quot;data breach&quot;"
+           aria-label="Keywords" autofocus>
+  </div>
+  <div class="col-md-3">
+    <select name="search" class="form-select" aria-label="Limit to one saved search" onchange="this.form.submit()">
+      <option value="">All saved searches</option>
+      {% for s in searches %}<option value="{{ s.pk }}" {% if selected_search == s.pk|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2 d-grid"><button class="btn btn-primary"><i class="bi bi-search"></i> Search</button></div>
+</form>
+
+<ul class="nav nav-pills mb-2 flex-wrap">
+  {% for key, label, icon in result_tabs %}
+    <li class="nav-item">
+      <a class="nav-link py-1 {% if view == key %}active{% endif %}" href="?{% url_replace view=key page='' %}">
+        <i class="bi {{ icon }}"></i> {{ label }} <span class="badge rounded-pill ms-1">{{ counts|get_item:key }}</span>
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+
+<datalist id="tag-options">{% for t in all_tags %}<option value="{{ t.name }}">{% endfor %}</datalist>
+<div class="small text-body-secondary mb-2">
+  {% if q or selected_search or active_tag %}
+    {{ page.paginator.count }} result{{ page.paginator.count|pluralize }}
+    {% if terms %}matching {% for t in terms %}<strong>{{ t }}</strong>{% if not forloop.last %} + {% endif %}{% endfor %}{% endif %}
+    · <a href="{% url 'results' %}">clear</a>
+  {% else %}
+    Showing all {{ page.paginator.count }} result{{ page.paginator.count|pluralize }}, newest first. Type a keyword to search them.
+  {% endif %}
+</div>
+
+{% for r in page %}
+  {% include "monitor/partials/result_card.html" with show_search=True hide_select=True %}
+{% empty %}
+  <div class="empty-state text-center py-5 px-3">
+    <i class="bi bi-search"></i>
+    {% if q %}
+      <h2 class="h5 mt-2">No results match “{{ q }}”</h2>
+      <p class="text-body-secondary mb-0">Try fewer words, or check another tab (e.g. <em>Deleted</em>).</p>
+    {% elif total %}
+      <p class="text-body-secondary mb-0">No results here.</p>
+    {% else %}
+      <h2 class="h5 mt-2">No results yet</h2>
+      <p class="text-body-secondary mb-0">Results appear here once your saved searches have run.</p>
+    {% endif %}
+  </div>
+{% endfor %}
+{% include "monitor/partials/pagination.html" %}
+{% endblock %}

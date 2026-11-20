@@ -14,6 +14,7 @@ urlpatterns = [
     path("searches/<int:pk>/toggle/", views.toggle_enabled, name="search-toggle"),
     path("searches/<int:pk>/mark-seen/", views.mark_seen, name="search-mark-seen"),
     path("searches/<int:pk>/runs/", views.search_runs, name="search-runs"),
+    path("results/", views.ResultsView.as_view(), name="results"),
     path("results/mark-seen/", views.mark_seen, name="mark-all-seen"),
     path("searches/<int:pk>/results/bulk/", views.bulk_results, name="results-bulk"),
     path("results/<int:pk>/tags/add/", views.result_tag_add, name="result-tag-add"),

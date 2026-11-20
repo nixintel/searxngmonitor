@@ -1,9 +1,9 @@
 {% load humanize monitor_tags %}
 <div class="card result-card mb-2 {% if r.is_new %}result-new{% endif %} {% if r.is_deleted %}result-deleted{% endif %}" id="result-{{ r.pk }}"
-     hx-vals='{"view": "{{ view|default:'' }}"}'>
+     hx-vals='{"view": "{{ view|default:'' }}"{% if show_search %}, "show_search": "1"{% endif %}}'>
   <div class="card-body py-2 px-3">
     <div class="d-flex gap-3 align-items-start">
-      <input class="form-check-input mt-1 result-select flex-shrink-0" type="checkbox" name="ids" value="{{ r.pk }}" form="bulk-form" aria-label="Select result">
+      {% if not hide_select %}<input class="form-check-input mt-1 result-select flex-shrink-0" type="checkbox" name="ids" value="{{ r.pk }}" form="bulk-form" aria-label="Select result">{% endif %}
       <div class="flex-grow-1" style="min-width:0">
         <div class="d-flex justify-content-between align-items-start gap-2">
           <a href="{{ r.url|safe_href }}" target="_blank" rel="noopener noreferrer" class="result-title text-break">{{ r.title|default:r.url }}</a>
@@ -30,6 +30,7 @@
           </div>
         </div>
         <div class="result-url text-break">{{ r.url|truncatechars:120 }}</div>
+        {% if show_search %}<div class="small mt-1"><i class="bi bi-binoculars"></i> <a href="{% url 'search-detail' r.search_id %}">{{ r.search.name }}</a></div>{% endif %}
         {% if r.content %}<div class="result-snippet mt-1">{{ r.content|truncatechars:350 }}</div>{% endif %}
 
         <div class="d-flex flex-wrap align-items-center gap-1 mt-2">

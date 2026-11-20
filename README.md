@@ -197,6 +197,30 @@ and any errors. A ⚠️ icon means some engines didn't respond. Hover over it t
 Click **Run now** on the search page, or ▶ on the dashboard. The run appears in the run history within about 10
 seconds. It doesn't change the regular schedule.
 
+### 5. Find things by keyword
+
+Once you have many searches and results, there are three places to look:
+
+| To find… | Use |
+|---|---|
+| A result from **any** search | **Results** in the top menu. Type keywords and press Enter. Each result shows which saved search found it. To look in one search only, pick it from the drop-down. |
+| A result within **one** search | The **Filter results…** box on that search's page. |
+| A **saved search** | The **Filter searches…** box above the table on the dashboard. It matches names and queries. The *Search all results instead* link next to it repeats your words on the Results page. |
+
+How the keyword boxes match:
+
+* They match the **title**, **snippet** and **URL** of each result, ignoring upper and lower case.
+* **Every word must match**, in any of those fields: `acme breach` finds results that mention both words.
+* Put an **exact phrase** in double quotes: `acme "data breach"`.
+* Part of a word is enough: `breach` also finds *breaches*, and `acme.com` finds URLs on that site.
+* The **New**, **Tagged** and **Deleted** tabs narrow the search further.
+
+Scripts can search the same way with the API: `GET /api/v1/results/?q=acme+breach`. Add `&search=<id>` to search
+one saved search only (see [Use the API from scripts](#use-the-api-from-scripts)).
+
+Searching stays fast even with hundreds of thousands of results. The database keeps a special index of the title,
+snippet and URL of every result for this.
+
 ---
 
 ## Monitor Google with Google Alerts

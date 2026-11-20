@@ -19,8 +19,8 @@ from django.views.generic import CreateView, DeleteView, DetailView, TemplateVie
 from monitor.forms import AppSettingsForm, SearchForm
 from monitor.models import AppSettings, SavedSearch, SearchResult, SearchRun, Tag
 from monitor.queries import (
-    LOG_LEVELS, filter_logs, filter_results, filter_runs, reschedule_if_needed, result_view,
-    result_view_counts, searches_with_stats, tags_for_search,
+    LOG_LEVELS, filter_logs, filter_results, filter_runs, filter_searches, reschedule_if_needed, result_view,
+    result_view_counts, search_terms, searches_with_stats, tags_for_search,
 )
 from monitor.services import health, notify, proxy_config, tor_config, updates
 from monitor.tasks import trigger_manual_run
@@ -54,7 +54,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["searches"] = searches_with_stats()
+        ctx["q"] = self.request.GET.get("q", "").strip()
+        ctx["searches"] = filter_searches(ctx["q"], searches_with_stats())
         since = timezone.now() - timedelta(hours=24)
         recent = SearchRun.objects.filter(created_at__gte=since)
         ctx["stats"] = {
@@ -79,7 +80,39 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 @login_required
 def dashboard_table(request):
-    return render(request, "monitor/partials/search_table.html", {"searches": searches_with_stats()})
+    q = request.GET.get("q", "").strip()
+    return render(request, "monitor/partials/search_table.html",
+                  {"searches": filter_searches(q, searches_with_stats()), "q": q})
+
+
+class ResultsView(LoginRequiredMixin, TemplateView):
+    """Keyword search across the results of every saved search."""
+
+    template_name = "monitor/results.html"
+    TABS = [("all", "All", "bi-list-ul"), ("new", "New", "bi-bell"),
+            ("tagged", "Tagged", "bi-tags"), ("deleted", "Deleted", "bi-trash")]
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        params = self.request.GET
+        base = SearchResult.objects.all()
+        search_id = params.get("search", "")
+        if search_id.isdigit():
+            base = base.filter(search_id=search_id)
+        results = filter_results(params, base).select_related("search")
+        ctx["page"] = Paginator(results, 50).get_page(params.get("page"))
+        ctx["q"] = params.get("q", "").strip()
+        ctx["terms"] = search_terms(ctx["q"])
+        ctx["view"] = result_view(params)
+        ctx["result_tabs"] = self.TABS
+        flat = {k: params.get(k) for k in params if k not in ("view", "new", "tagged", "deleted", "page")}
+        ctx["counts"] = {key: filter_results({**flat, "view": key}, base).count() for key, _, _ in self.TABS}
+        ctx["searches"] = SavedSearch.objects.only("id", "name")
+        ctx["selected_search"] = search_id
+        ctx["active_tag"] = params.get("tag", "")
+        ctx["all_tags"] = Tag.objects.all()
+        ctx["total"] = SearchResult.objects.visible().count()
+        return ctx
 
 
 @login_required
@@ -230,8 +263,10 @@ def _card_response(request, result, toast=None, events=("refreshBadge",)):
         resp = HttpResponse("")
     else:
         result = SearchResult.objects.prefetch_related("tags").get(pk=result.pk)
+        on_results_page = request.POST.get("show_search") == "1"  # the cross-search Results page
         resp = render(request, "monitor/partials/result_card.html", {
             "r": result, "view": request.POST.get("view"), "all_tags": Tag.objects.all(),
+            "show_search": on_results_page, "hide_select": on_results_page,
         })
     payload = {e: True for e in events}
     if toast:

@@ -59,6 +59,7 @@
             <span hx-get="{% url 'new-badge' %}" hx-trigger="every 30s, refreshBadge from:body" hx-swap="innerHTML">{% include "monitor/partials/new_badge.html" %}</span>
           </a>
         </li>
+        <li class="nav-item"><a class="nav-link {% if url_name == 'results' %}active{% endif %}" href="{% url 'results' %}"><i class="bi bi-search"></i> Results</a></li>
         <li class="nav-item"><a class="nav-link {% if url_name == 'search-create' %}active{% endif %}" href="{% url 'search-create' %}"><i class="bi bi-plus-lg"></i> New search</a></li>
         <li class="nav-item"><a class="nav-link {% if url_name == 'ops' %}active{% endif %}" href="{% url 'ops' %}"><i class="bi bi-activity"></i> Ops</a></li>
         <li class="nav-item"><a class="nav-link {% if url_name == 'settings' %}active{% endif %}" href="{% url 'settings' %}"><i class="bi bi-sliders"></i> Settings</a></li>

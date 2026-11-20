@@ -77,7 +77,24 @@
   </div></div></div>
 </div>
 
-<div hx-get="{% url 'dashboard-table' %}" hx-trigger="every 30s, refreshTable from:body" hx-swap="innerHTML">
+<div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+  <input type="search" name="q" id="search-filter" value="{{ q }}" class="form-control form-control-sm" style="max-width: 22rem"
+         placeholder="Filter searches…" aria-label="Filter searches"
+         hx-get="{% url 'dashboard-table' %}" hx-trigger="input changed delay:300ms, search" hx-target="#search-table">
+  <a class="small" id="search-results-link" href="{% url 'results' %}{% if q %}?q={{ q|urlencode }}{% endif %}">
+    <i class="bi bi-search"></i> Search all results instead</a>
+</div>
+<div id="search-table" hx-get="{% url 'dashboard-table' %}" hx-trigger="every 30s, refreshTable from:body" hx-swap="innerHTML"
+     hx-include="#search-filter">
   {% include "monitor/partials/search_table.html" %}
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Keep "Search all results" pointing at whatever is typed in the filter box.
+  document.getElementById('search-filter').addEventListener('input', function () {
+    const q = this.value.trim();
+    document.getElementById('search-results-link').href = '{% url "results" %}' + (q ? '?q=' + encodeURIComponent(q) : '');
+  });
+</script>
 {% endblock %}

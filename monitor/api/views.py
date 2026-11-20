@@ -17,7 +17,8 @@ RESULT_FILTERS = [
     OpenApiParameter("view", str, enum=["all", "new", "tagged", "deleted"],
                      description="Which results: all (default, excludes deleted), new, tagged, deleted"),
     OpenApiParameter("tag", str, description="Tag id or name"),
-    OpenApiParameter("q", str, description="Text filter on title/content/url"),
+    OpenApiParameter("q", str, description='Keywords matched against title/content/url. Every word must match; '
+                                            'use quotes for an exact phrase, e.g. acme "data breach"'),
 ]
 
 

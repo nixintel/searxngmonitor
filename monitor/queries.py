@@ -1,5 +1,7 @@
 """Query helpers shared by the UI and the API."""
 
+import re
+
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 
@@ -8,6 +10,7 @@ from monitor.models import LogEntry, SavedSearch, SearchResult, SearchRun, Tag
 LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 RESULT_VIEWS = ["all", "new", "tagged", "deleted"]
 TRUTHY = ("1", "true", "True", "yes", "on")
+TERM_RE = re.compile(r'"([^"]*)"|(\S+)')
 
 
 def _count_subquery(qs):
@@ -52,10 +55,30 @@ def filter_results(params, qs):
     if tag:
         qs = qs.filter(tags__id=tag) if str(tag).isdigit() else qs.filter(tags__name=Tag.normalize(tag))
         qs = qs.distinct()
-    if params.get("q"):
-        q = params["q"]
-        qs = qs.filter(Q(title__icontains=q) | Q(content__icontains=q) | Q(url__icontains=q))
+    for term in search_terms(params.get("q")):
+        qs = qs.filter(Q(title__icontains=term) | Q(content__icontains=term) | Q(url__icontains=term))
     return qs.prefetch_related("tags")
+
+
+def search_terms(q, limit=10):
+    """Split a keyword query into terms: words, or "quoted phrases". Every term must match.
+
+    e.g. 'acme "data breach"' -> ['acme', 'data breach']. Only double quotes group words, so apostrophes and
+    backslashes are kept as typed (e.g. o'brien); a stray unclosed quote is ignored.
+    """
+    terms = []
+    for phrase, word in TERM_RE.findall(q or ""):
+        term = (phrase or word).replace('"', "").strip()
+        if term:
+            terms.append(term)
+    return terms[:limit]
+
+
+def filter_searches(q, qs):
+    """Saved searches whose name, query or feed URL contains every term of `q`."""
+    for term in search_terms(q):
+        qs = qs.filter(Q(name__icontains=term) | Q(query__icontains=term) | Q(feed_url__icontains=term))
+    return qs
 
 
 def result_view_counts(search):
